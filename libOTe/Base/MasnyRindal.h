@@ -6,12 +6,26 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/PRNG.h>
 
+#include "coproto/Proto.h"
+#include "libOTe/Tools/CoprotoSock.h"
+
 namespace osuCrypto
 {
 
     class MasnyRindal : public OtReceiver, public OtSender
     {
     public:
+
+        coproto::Proto receive(
+            const BitVector& choices,
+            span<block> messages,
+            PRNG& prng);
+
+
+
+        coproto::Proto send(
+            span<std::array<block, 2>> messages,
+            PRNG& prng);
 
         void receive(
             const BitVector& choices,
@@ -20,7 +34,8 @@ namespace osuCrypto
             Channel& chl,
             u64 numThreads)
         {
-            receive(choices, messages, prng, chl);
+            auto sock = CoprotoSock(chl);
+            receive(choices, messages, prng).evaluate(sock);
         }
 
         void send(
@@ -36,12 +51,20 @@ namespace osuCrypto
             const BitVector& choices,
             span<block> messages,
             PRNG& prng,
-            Channel& chl) override;
+            Channel& chl) override
+        {
+            auto sock = CoprotoSock(chl);
+            receive(choices, messages, prng).evaluate(sock);
+        }
 
         void send(
             span<std::array<block, 2>> messages,
             PRNG& prng,
-            Channel& chl) override;
+            Channel& chl) override
+        {
+            auto sock = CoprotoSock(chl);
+            send(messages, prng).evaluate(sock);
+        }
     };
 
 }

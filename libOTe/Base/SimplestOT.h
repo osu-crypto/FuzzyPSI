@@ -11,7 +11,7 @@
 #include "libOTe/TwoChooseOne/OTExtInterface.h"
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/PRNG.h>
-
+#include "coproto/Proto.h"
 namespace osuCrypto
 {
 
@@ -61,6 +61,15 @@ namespace osuCrypto
             span<std::array<block, 2>> messages,
             PRNG& prng,
             Channel& chl) override;
+
+        coproto::Proto receive(
+            const BitVector& choices,
+            span<block> messages,
+            PRNG& prng);
+
+        coproto::Proto send(
+            span<std::array<block, 2>> messages,
+            PRNG& prng);
     };
 
 #endif

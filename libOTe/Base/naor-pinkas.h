@@ -5,6 +5,8 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Crypto/PRNG.h>
 
+#include "coproto/Proto.h"
+
 #ifdef ENABLE_NP
 
 #if !defined ENABLE_RELIC  && !defined ENABLE_MIRACL
@@ -18,10 +20,6 @@ namespace osuCrypto
     {
     public:
 
-        NaorPinkas();
-        ~NaorPinkas(); 
-
-
         void receive(
             const BitVector& choices, 
             span<block> messages,
@@ -29,11 +27,20 @@ namespace osuCrypto
             Channel& chl, 
             u64 numThreads);
 
+        coproto::Proto receive(
+            const BitVector& choices,
+            span<block> messages,
+            PRNG& prng);
+
         void send(
-            span<std::array<block, 2>> messages, 
-            PRNG& prng, 
-            Channel& sock, 
+            span<std::array<block, 2>> messages,
+            PRNG& prng,
+            Channel& sock,
             u64 numThreads);
+
+        coproto::Proto send(
+            span<std::array<block, 2>> messages,
+            PRNG& prng);
 
         void receive(
             const BitVector& choices,

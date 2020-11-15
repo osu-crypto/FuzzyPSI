@@ -18,153 +18,264 @@ using Brick = oc::REccPoint;
 using Number = oc::REccNumber;
 
 #include <libOTe/Base/SimplestOT.h>
+#include "coproto/Buffers.h"
+#include "coproto/NativeProto.h"
+#include "coproto/AwaitProto.h"
+#include "coproto/Macros.h"
 
 namespace osuCrypto
 {
-    const u64 step = 16;
+	const u64 step = 16;
 
-    void MasnyRindal::receive(
-        const BitVector & choices,
-        span<block> messages,
-        PRNG & prng,
-        Channel & chl)
-    {
+	coproto::Proto MasnyRindal::receive(const BitVector& choices, span<block> messages, PRNG& prng)
+	{
+		struct Frame : coproto::NativeProto
+		{
 
-        auto n = choices.size();
-        Curve curve;
-        std::array<Point, 2> r{ curve, curve };
-        auto g = curve.getGenerator();
-        auto pointSize = g.sizeBytes();
+			Frame(const BitVector& c, span<block>& m, PRNG& p)
+				:choices(c)
+				, messages(m)
+				, prng(p)
+			{}
+			const BitVector& choices;
+			span<block> messages;
+			PRNG& prng;
 
-        RandomOracle ro(sizeof(block));
-        Point hPoint(curve);
+			u64 n;
+			Curve _curve;
+			std::array<Point, 2> r;
+			Point g;
+			u64 pointSize;
+			Point hPoint;
+			std::vector<u8> hashBuff;
+			std::vector<u8> ioBuff;
+			std::vector<Number> sk;
+			Point Mb, k;
+			u64 i, curStep;
+			u8* iter;
 
-        std::vector<u8> hashBuff(roundUpTo(pointSize, 16));
-        std::vector<block> aesBuff((pointSize + 15) / 16);
-        std::vector<Number> sk; sk.reserve(n);
+			coproto::error_code resume() override
+			{
+				Curve curve;
 
+				CP_BEGIN();
+				n = choices.size();
+				g = curve.getGenerator();
+				pointSize = g.sizeBytes();
 
-        std::vector<u8> recvBuff(pointSize);
-        auto fu = chl.asyncRecv(recvBuff.data(), pointSize);
-
-        for (u64 i = 0; i < n;)
-        {
-            auto curStep = std::min<u64>(n - i, step);
-
-            std::vector<u8> sendBuff(pointSize * 2 * curStep);
-            auto sendBuffIter = sendBuff.data();
-
-
-            for (u64 k = 0; k < curStep; ++k, ++i)
-            {
-
-                auto& rrNot = r[choices[i] ^ 1];
-                auto& rr = r[choices[i]];
-
-                rrNot.randomize();
-                rrNot.toBytes(hashBuff.data());
-
-                ep_map(hPoint, hashBuff.data(), int(pointSize));
-
-                sk.emplace_back(curve, prng);
-
-                rr = g * sk[i];
-                rr -= hPoint;
-
-                r[0].toBytes(sendBuffIter); sendBuffIter += pointSize;
-                r[1].toBytes(sendBuffIter); sendBuffIter += pointSize;
-            }
-
-            if (sendBuffIter != sendBuff.data() + sendBuff.size())
-                throw RTE_LOC;
-
-            chl.asyncSend(std::move(sendBuff));
-        }
+				hashBuff.resize(roundUpTo(pointSize, 16));
+				sk.reserve(n);
 
 
-        Point Mb(curve), k(curve);
-        fu.get();
-        Mb.fromBytes(recvBuff.data());
+				for (i = 0; i < n;)
+				{
+					curStep = std::min<u64>(n - i, step);
 
-        for (u64 i = 0; i < n; ++i)
-        {
-            k = Mb;
-            k *= sk[i];
-
-            //lout << "g^ab  " << k << std::endl;
-
-            k.toBytes(hashBuff.data());
-
-            ro.Reset();
-            ro.Update(hashBuff.data(), pointSize);
-            ro.Update(i);
-            ro.Final(messages[i]);
-        }
-    }
-
-    void MasnyRindal::send(span<std::array<block, 2>> messages, PRNG & prng, Channel & chl)
-    {
-        auto n = static_cast<u64>(messages.size());
-        
-        Curve curve;
-        auto g = curve.getGenerator();
-        RandomOracle ro(sizeof(block));
-        auto pointSize = g.sizeBytes();
+					ioBuff.resize(pointSize * 2 * curStep);
+					iter = ioBuff.data();
 
 
-        Number sk(curve, prng);
+					for (u64 k = 0; k < curStep; ++k, ++i)
+					{
 
-        Point Mb = g;
-        Mb *= sk;
+						auto& rrNot = r[choices[i] ^ 1];
+						auto& rr = r[choices[i]];
 
-        std::vector<u8> buff(pointSize), hashBuff(roundUpTo(pointSize, 16));
-        std::vector<block> aesBuff((pointSize + 15) / 16);
+						rrNot.randomize();
+						rrNot.toBytes(hashBuff.data());
 
-        Mb.toBytes(buff.data());
-        chl.asyncSend(std::move(buff));
+						ep_map(hPoint, hashBuff.data(), int(pointSize));
 
-        buff.resize(pointSize * 2 * step);
-        Point pHash(curve), r(curve);
+						sk.emplace_back(prng);
 
-        for (u64 i = 0; i < n; )
-        {
-            auto curStep = std::min<u64>(n - i, step);
+						rr = g * sk[i];
+						rr -= hPoint;
 
-            auto buffSize = curStep * pointSize * 2;
-            chl.recv(buff.data(), buffSize);
-            auto buffIter = buff.data();
+						r[0].toBytes(iter); iter += pointSize;
+						r[1].toBytes(iter); iter += pointSize;
+					}
+
+					CP_SEND(std::move(ioBuff));
+					//co_await coproto::send(std::move(ioBuff));
+				}
 
 
-            for (u64 k = 0; k < curStep; ++k, ++i)
-            {
-                std::array<u8*, 2> buffIters{
-                    buffIter,
-                    buffIter + pointSize
-                };
-                buffIter += pointSize * 2;
+				ioBuff.resize(pointSize);
 
-                for (u64 j = 0; j < 2; ++j)
-                {
-                    r.fromBytes(buffIters[j]);
-                    ep_map(pHash, buffIters[j ^ 1], int(pointSize));
+				CP_RECV(ioBuff);
+				Mb.fromBytes(ioBuff.data());
 
-                    r += pHash;
-                    r *= sk;
+				for (u64 i = 0; i < n; ++i)
+				{
+					k = Mb;
+					k *= sk[i];
 
-                    r.toBytes(hashBuff.data());
-                    auto p = (block*)hashBuff.data();
+					//lout << "g^ab  " << k << std::endl;
 
-                    ro.Reset();
-                    ro.Update(hashBuff.data(), pointSize);
-                    ro.Update(i);
-                    ro.Final(messages[i][j]);
-                }
-            }
+					k.toBytes(hashBuff.data());
 
-            if (buffIter != buff.data() + buffSize)
-                throw RTE_LOC;
-        }
+					RandomOracle ro(sizeof(block));
+					ro.Update(hashBuff.data(), pointSize);
+					ro.Update(i);
+					ro.Final(messages[i]);
+				}
 
-    }
+				CP_END();
+
+				return {};
+			}
+		};
+
+		return coproto::makeProto<Frame>(choices, messages, prng);
+
+	}
+	//struct Controller
+	//{
+	//	error_code send(span<u8>);
+	//	error_code recv(span<u8>);
+
+	//};
+
+
+	coproto::Proto MasnyRindal::send(span<std::array<block, 2>> messages, PRNG& prng)
+	{
+		struct Frame : public coproto::NativeProto
+		{
+			Frame(span<std::array<block, 2>>& m, PRNG& p)
+				:messages(m)
+				, prng(p)
+			{}
+
+			span<std::array<block, 2>> messages;
+			PRNG& prng;
+
+			Curve _curve;
+			u64 n;
+			Point g;
+			u64 pointSize;
+			Number sk;
+			Point Mb;
+			std::vector<u8> buff, hashBuff;
+			Point pHash, r;
+			u64 i, curStep;
+
+			coproto::error_code resume() override
+			{
+				// this initializes relic if its not already done.
+				Curve curve;
+
+				CP_BEGIN();
+
+				n = static_cast<u64>(messages.size());
+
+				g = curve.getGenerator();
+				pointSize = g.sizeBytes();
+				sk = Number(prng);
+				Mb = g * sk;
+
+				buff.resize(pointSize);
+				hashBuff.resize(roundUpTo(pointSize, 16));
+
+				Mb.toBytes(buff.data());
+
+
+				CP_SEND(std::move(buff));
+
+				for (i = 0; i < n; )
+				{
+					curStep = std::min<u64>(n - i, step);
+					buff.resize(curStep * pointSize * 2);
+
+					CP_RECV(buff);
+
+					auto buffIter = buff.data();
+
+
+					for (u64 k = 0; k < curStep; ++k, ++i)
+					{
+						std::array<u8*, 2> buffIters{
+							buffIter,
+							buffIter + pointSize
+						};
+						buffIter += pointSize * 2;
+
+						for (u64 j = 0; j < 2; ++j)
+						{
+							r.fromBytes(buffIters[j]);
+							ep_map(pHash, buffIters[j ^ 1], int(pointSize));
+
+							r += pHash;
+							r *= sk;
+
+							r.toBytes(hashBuff.data());
+
+							RandomOracle ro(sizeof(block));
+							ro.Update(hashBuff.data(), pointSize);
+							ro.Update(i);
+							ro.Final(messages[i][j]);
+
+						}
+					}
+
+				}
+
+				CP_END();
+				return {};
+			}
+		};
+
+
+		return coproto::makeProto<Frame>(messages, prng);
+
+		//for (u64 i = 0; i < n; )
+		//{
+		//    auto curStep = std::min<u64>(n - i, step);
+		//    buff.resize(curStep * pointSize * 2);
+
+		//    co_await coproto::recvFixedSize(buff);
+		//    auto buffIter = buff.data();
+
+
+		//    for (u64 k = 0; k < curStep; ++k, ++i)
+		//    {
+		//        std::array<u8*, 2> buffIters{
+		//            buffIter,
+		//            buffIter + pointSize
+		//        };
+		//        buffIter += pointSize * 2;
+
+		//        for (u64 j = 0; j < 2; ++j)
+		//        {
+		//            r.fromBytes(buffIters[j]);
+		//            ep_map(pHash, buffIters[j ^ 1], int(pointSize));
+
+		//            r += pHash;
+		//            r *= sk;
+
+		//            r.toBytes(hashBuff.data());
+		//            auto p = (block*)hashBuff.data();
+
+		//            ro.Reset();
+		//            ro.Update(hashBuff.data(), pointSize);
+		//            ro.Update(i);
+		//            ro.Final(messages[i][j]);
+		//        }
+		//    }
+		//}
+	}
+
+	//void MasnyRindal::receive(
+	//    const BitVector & choices,
+	//    span<block> messages,
+	//    PRNG & prng,
+	//    Channel & chl)
+	//{
+	//    throw RTE_LOC;
+	//}
+
+	//void MasnyRindal::send(span<std::array<block, 2>> messages, PRNG & prng, Channel & chl)
+	//{
+	//    throw RTE_LOC;
+	//}
 }
 #endif

@@ -1,3 +1,4 @@
+
 #include "OT_Tests.h"
 
 #include "libOTe/TwoChooseOne/OTExtInterface.h"
@@ -18,6 +19,7 @@
 #include <vector>
 #include <cryptoTools/Common/TestCollection.h>
 #include <cryptoTools/Common/BitVector.h>
+#include "coproto/LocalEvaluator.h"
 
 #ifdef GetMessage
 #undef GetMessage
@@ -34,12 +36,6 @@ namespace tests_libOTe
 #ifdef ENABLE_NP
         setThreadName("Sender");
 
-        IOService ios(0);
-        Session ep0(ios, "127.0.0.1", 1212, SessionMode::Server);
-        Session ep1(ios, "127.0.0.1", 1212, SessionMode::Client);
-        Channel senderChannel = ep1.addChannel();
-        Channel recvChannel = ep0.addChannel();
-
         PRNG prng0(block(4253465, 3434565));
         PRNG prng1(block(42532335, 334565));
 
@@ -49,25 +45,23 @@ namespace tests_libOTe
         BitVector choices(numOTs);
         choices.randomize(prng0);
 
-        std::thread thrd = std::thread([&]() {
-            setThreadName("receiver");
+        NaorPinkas baseOTs0;
+        auto p0 = baseOTs0.send(sendMsg, prng1);
 
-            NaorPinkas baseOTs;
-            baseOTs.send(sendMsg, prng1, recvChannel, 1);
-        });
+        NaorPinkas baseOTs1;
 
-        NaorPinkas baseOTs;
+        auto p1 = baseOTs1.receive(choices, recvMsg, prng0);
 
-        baseOTs.receive(choices, recvMsg, prng0, senderChannel, 1);
 
-        thrd.join();
+        coproto::LocalEvaluator eval;
+        eval.execute(p0, p1);
 
 
         for (u64 i = 0; i < numOTs; ++i)
         {
             if (neq(recvMsg[i], sendMsg[i][choices[i]]))
             {
-                std::cout << "failed " << i << std::endl;
+                std::cout << "failed " << i << " exp = m[" << int(choices[i]) << "], act = " << recvMsg[i] << " true = " << sendMsg[i][0] << ", " << sendMsg[i][1] << std::endl;
                 throw UnitTestFail();
             }
         }
@@ -82,12 +76,6 @@ namespace tests_libOTe
 #ifdef ENABLE_SIMPLESTOT
         setThreadName("Sender");
 
-        IOService ios(0);
-        Session ep0(ios, "127.0.0.1", 1212, SessionMode::Server);
-        Session ep1(ios, "127.0.0.1", 1212, SessionMode::Client);
-        Channel senderChannel = ep1.addChannel();
-        Channel recvChannel = ep0.addChannel();
-
         PRNG prng0(block(4253465, 3434565));
         PRNG prng1(block(42532335, 334565));
 
@@ -97,27 +85,24 @@ namespace tests_libOTe
         BitVector choices(numOTs);
         choices.randomize(prng0);
 
+        SimplestOT baseOTs0;
+        auto p0 = baseOTs0.send(sendMsg, prng1);
 
-        std::thread thrd = std::thread([&]() {
-            setThreadName("receiver");
-            SimplestOT baseOTs;
-            baseOTs.send(sendMsg, prng1, recvChannel);
 
-        });
-
-        SimplestOT baseOTs;
-        baseOTs.receive(choices, recvMsg, prng0, senderChannel);
-
-        thrd.join();
+        SimplestOT baseOTs1;
+        auto p1 = baseOTs1.receive(choices, recvMsg, prng0);
+        coproto::LocalEvaluator eval;
+        eval.execute(p0, p1);
 
         for (u64 i = 0; i < numOTs; ++i)
         {
             if (neq(recvMsg[i], sendMsg[i][choices[i]]))
             {
-                std::cout << "failed " << i <<" exp = m["<< int(choices[i]) <<"], act = " << recvMsg[i] <<" true = " << sendMsg[i][0] << ", " << sendMsg[i][1] <<std::endl;
+                std::cout << "failed " << i << " exp = m[" << int(choices[i]) << "], act = " << recvMsg[i] << " true = " << sendMsg[i][0] << ", " << sendMsg[i][1] << std::endl;
                 throw UnitTestFail();
             }
         }
+
 #else
         throw UnitTestSkipped("Simplest OT not enabled. Requires Relic or the simplest OT ASM library");
 #endif
@@ -131,12 +116,6 @@ namespace tests_libOTe
 #ifdef ENABLE_MR
         setThreadName("Sender");
 
-        IOService ios(0);
-        Session ep0(ios, "127.0.0.1", 1212, SessionMode::Server);
-        Session ep1(ios, "127.0.0.1", 1212, SessionMode::Client);
-        Channel senderChannel = ep1.addChannel();
-        Channel recvChannel = ep0.addChannel();
-
         PRNG prng0(block(4253465, 3434565));
         PRNG prng1(block(42532335, 334565));
 
@@ -146,18 +125,15 @@ namespace tests_libOTe
         BitVector choices(numOTs);
         choices.randomize(prng0);
 
+        MasnyRindal baseOTs0;
+        auto p0 = baseOTs0.send(sendMsg, prng1);
 
-        std::thread thrd = std::thread([&]() {
-            setThreadName("receiver");
-            MasnyRindal baseOTs;
-            baseOTs.send(sendMsg, prng1, recvChannel);
+        MasnyRindal baseOTs1;
+        auto p1 = baseOTs1.receive(choices, recvMsg, prng0);
 
-        });
-        
-        MasnyRindal baseOTs;
-        baseOTs.receive(choices, recvMsg, prng0, senderChannel);
+        coproto::LocalEvaluator eval;
+        eval.execute(p0, p1);
 
-        thrd.join();
 
         for (u64 i = 0; i < numOTs; ++i)
         {
@@ -168,7 +144,7 @@ namespace tests_libOTe
             }
         }
 #else
-throw UnitTestSkipped("MasnyRindal not enabled. Requires Relic.");
+        throw UnitTestSkipped("MasnyRindal not enabled. Requires Relic.");
 #endif
     }
 
@@ -198,7 +174,7 @@ throw UnitTestSkipped("MasnyRindal not enabled. Requires Relic.");
             MasnyRindalKyber baseOTs;
             baseOTs.send(sendMsg, prng1, recvChannel);
 
-        });
+            });
 
         MasnyRindalKyber baseOTs;
         baseOTs.receive(choices, recvMsg, prng0, senderChannel);
@@ -218,4 +194,4 @@ throw UnitTestSkipped("MasnyRindal not enabled. Requires Relic.");
 #endif
     }
 
-}
+    }

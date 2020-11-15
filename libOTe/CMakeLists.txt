@@ -23,6 +23,35 @@ if(ENABLE_MR_KYBER)
 endif(ENABLE_MR_KYBER)
 
 
+
+#  coproto
+############################################
+
+
+if(NOT DEFINED COPROTO_DIR)
+set(COPROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../coproto")
+endif()
+if(NOT DEFINED COPROTO_INCLUDE_DIRS)
+    set(COPROTO_INCLUDE_DIRS "${COPROTO_DIR}")
+endif()
+
+
+find_library(COPROTO_LIB NAMES coproto  HINTS "${COPROTO_DIR}/lib")
+
+# if we cant fint it, throw an error
+if(NOT COPROTO_LIB)
+    message(FATAL_ERROR "Failed to find coproto at ${COPROTO_DIR}. You can specify its location via cmake with -DCOPROTO_DIR=path" )
+endif()
+
+message(STATUS "COPROTO_LIB:  ${COPROTO_LIB}")
+message(STATUS "COPROTO_INC:  ${COPROTO_INCLUDE_DIRS}\n")
+
+
+target_include_directories(libOTe PUBLIC ${COPROTO_INCLUDE_DIRS}) 
+target_link_libraries(libOTe ${COPROTO_LIB})
+
+
+
 #############################################
 #            Install                        #
 #############################################
