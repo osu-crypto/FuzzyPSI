@@ -74,12 +74,11 @@ namespace osuCrypto
         bool hasBaseOts() const override;
 
         // sets the IKNP base OTs that are then used to extend
-        void setBaseOts(
+        void setUniformBaseOts(
             span<block> baseRecvOts,
-            const BitVector& choices,
-            Channel& chl) override
+            const BitVector& choices) override
         {
-            mIknpSender.setBaseOts(baseRecvOts, choices, chl);
+            mIknpSender.setBaseOts(baseRecvOts, choices);
         }
 
         // Returns an indpendent copy of this extender.
@@ -88,19 +87,11 @@ namespace osuCrypto
             throw std::runtime_error("not impl");
         }
 
-        // use the default base OT class to generate the
-        // IKNP base OTs that are required.
-        void genBaseOts(PRNG& prng, Channel& chl) override
-        {
-            mIknpSender.genBaseOts(prng, chl);
-        }
-
         // Perform OT extension of random OT messages but
         // allow the receiver to specify the choice bits.
-        void send(
+        coproto::Proto send(
             span<std::array<block, 2>> messages,
-            PRNG& prng,
-            Channel& chl) override;
+            PRNG& prng) override;
 
 
         /////////////////////////////////////////////////////
@@ -147,6 +138,11 @@ namespace osuCrypto
         // which OT message they receiver. Instead
         // the protocol picks them at random. Use the 
         // send(...) interface for the normal behavior.
+        coproto::Proto silentSend(
+            span<std::array<block, 2>> messages,
+            PRNG& prng);
+
+
         void silentSend(
             span<std::array<block, 2>> messages,
             PRNG& prng,

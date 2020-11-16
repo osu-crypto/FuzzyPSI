@@ -4,6 +4,9 @@
 #include <cryptoTools/Common/Log.h>
 #include <cryptoTools/Crypto/RandomOracle.h>
 #include <libOTe/Tools/Tools.h>
+#include "coproto/NativeProto.h"
+#include "coproto/Macros.h"
+
 //#define DEBUG_PRINT_PPRF
 
 namespace osuCrypto
@@ -579,6 +582,9 @@ namespace osuCrypto
                 ss = ss ^ s;
             }
         };
+
+        coproto::Proto p;
+        CP_AWAIT(p.async(coproto::multiThread{}));
 
         std::vector<std::thread> thrds(chls.size() - 1);
         for (u64 i = 0; i < thrds.size(); ++i)
