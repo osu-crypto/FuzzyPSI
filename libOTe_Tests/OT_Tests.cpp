@@ -32,6 +32,8 @@
 #include <cryptoTools/Common/BitVector.h>
 #include <cryptoTools/Common/Matrix.h>
 
+#include "coproto/LocalEvaluator.h"
+
 #ifdef GetMessage
 #undef GetMessage
 #endif
@@ -599,17 +601,16 @@ namespace tests_libOTe
 		for (u64 t = 0; t < numTrials; ++t)
 		{
 			u64 numOTs = 4234;
-			u64 s = 40;
 
-			std::vector<block> recvMsg(numOTs), baseRecv(128 + s);
-			std::vector<std::array<block, 2>> sendMsg(numOTs), baseSend(128 + s);
+			std::vector<block> recvMsg(numOTs), baseRecv(128);
+			std::vector<std::array<block, 2>> sendMsg(numOTs), baseSend(128);
 			BitVector choices(numOTs);
 			choices.randomize(prng0);
 
-			BitVector baseChoice(128 + s);
+			BitVector baseChoice(128);
 			baseChoice.randomize(prng0);
 
-			for (u64 i = 0; i < 128 + s; ++i)
+			for (u64 i = 0; i < 128; ++i)
 			{
 				baseSend[i][0] = prng0.get<block>();
 				baseSend[i][1] = prng0.get<block>();
@@ -621,13 +622,13 @@ namespace tests_libOTe
 
 			std::thread thrd = std::thread([&]() {
 				setThreadName("receiver");
-				recv.setBaseOts(baseSend);
+				recv.setUniformBaseOts(baseSend);
 				recv.receive(choices, recvMsg, prng0, recvChannel);
 			});
 
-			block delta = prng1.get<block>();
-			sender.setDelta(delta);
-			sender.setBaseOts(baseRecv, baseChoice);
+			block delta = *(block*)baseChoice.data();// prng1.get<block>();
+			//sender.setDelta(delta);
+			sender.setUniformBaseOts(baseRecv, baseChoice);
 			sender.send(sendMsg, prng1, senderChannel);
 			thrd.join();
 
@@ -654,11 +655,11 @@ namespace tests_libOTe
 
 		setThreadName("Sender");
 
-		IOService ios;
-		Session ep0(ios, "127.0.0.1", 1212, SessionMode::Server);
-		Session ep1(ios, "127.0.0.1", 1212, SessionMode::Client);
-		Channel senderChannel = ep1.addChannel();
-		Channel recvChannel   = ep0.addChannel();
+		//IOService ios;
+		//Session ep0(ios, "127.0.0.1", 1212, SessionMode::Server);
+		//Session ep1(ios, "127.0.0.1", 1212, SessionMode::Client);
+		//Channel senderChannel = ep1.addChannel();
+		//Channel recvChannel   = ep0.addChannel();
 
 		PRNG prng0(block(4253465, 3434565));
 		PRNG prng1(block(42532335, 334565));
@@ -679,15 +680,24 @@ namespace tests_libOTe
 
 		IknpOtExtSender sender;
 		IknpOtExtReceiver recv;
+		//recv.setUniformBaseOts(baseSend);
+		//sender.setUniformBaseOts(baseRecv, baseChoice);
 
-		std::thread thrd = std::thread([&]() {
-			recv.setBaseOts(baseSend);
-			recv.receive(choices, recvMsg, prng0, recvChannel);
-		});
+		//std::thread thrd = std::thread([&]() {
+		//	recv.receive(choices, recvMsg, prng0, recvChannel);
+		//});
 
-		sender.setBaseOts(baseRecv, baseChoice);
-		sender.send(sendMsg, prng1, senderChannel);
-		thrd.join();
+		//sender.send(sendMsg, prng1, senderChannel);
+		//thrd.join();
+
+
+		auto p0 = recv.receive(choices, recvMsg, prng0);
+		auto p1 = sender.send(sendMsg, prng1);
+		coproto::LocalEvaluator eval;
+
+		auto ec = eval.execute(p0, p1);
+		if (ec)
+			throw RTE_LOC;
 
 		OT_100Receive_Test(choices, recvMsg, sendMsg);
 

@@ -9,18 +9,18 @@
 #include <cryptoTools/Crypto/PRNG.h>
 #include "libOTe/Tools/LinearCode.h"
 #include <array>
+#include "libOTe/TwoChooseOne/IknpOtExtSender.h"
 
 namespace osuCrypto {
 
     class IknpDotExtSender :
-        public OtExtSender, public TimerAdapter
+        public IknpOtExtSender
     {
     public: 
-		block mDelta = ZeroBlock;
-        std::vector<PRNG> mGens;
-        BitVector mBaseChoiceBits;
-
-        IknpDotExtSender() = default;
+        IknpDotExtSender()
+        {
+            mDeltaOT = true;
+        }
         IknpDotExtSender(const IknpDotExtSender&) = delete;
         IknpDotExtSender(IknpDotExtSender&&) = default;
 
@@ -28,38 +28,33 @@ namespace osuCrypto {
             span<block> baseRecvOts,
             const BitVector& choices)
         {
-            setBaseOts(baseRecvOts, choices);
+            mDeltaOT = true;
+            setUniformBaseOts(baseRecvOts, choices);
         }
 
-        void operator=(IknpDotExtSender&& v)
-        {
-            mGens = std::move(v.mGens);
-            mBaseChoiceBits = std::move(v.mBaseChoiceBits);
-            mDelta = v.mDelta;
-            v.mDelta = ZeroBlock;
-        }
+        IknpDotExtSender& operator=(IknpDotExtSender&& v) = default;
 
-        // defaults to requiring 40 more base OTs. This gives 40 bits 
-        // of statistical secuirty.
-        u64 baseOtCount() const override { return gOtExtBaseOtCount + 40; }
+        //// defaults to requiring 40 more base OTs. This gives 40 bits 
+        //// of statistical secuirty.
+        //u64 baseOtCount() const override { return gOtExtBaseOtCount + 40; }
 
-        // return true if this instance has valid base OTs. 
-        bool hasBaseOts() const override
-        {
-            return mBaseChoiceBits.size() > 0;
-        }
+        //// return true if this instance has valid base OTs. 
+        //bool hasBaseOts() const override
+        //{
+        //    return mBaseChoiceBits.size() > 0;
+        //}
 
 
-        // sets the base OTs.
-        void setBaseOts(
-            span<block> baseRecvOts,
-            const BitVector& choices);
+        //// sets the base OTs.
+        //void setBaseOts(
+        //    span<block> baseRecvOts,
+        //    const BitVector& choices);
 
-            // sets the base OTs.
-        void setBaseOts(
-            span<block> baseRecvOts,
-            const BitVector& choices,
-            Channel& chl) override {setBaseOts(baseRecvOts, choices);}
+        //    // sets the base OTs.
+        //void setBaseOts(
+        //    span<block> baseRecvOts,
+        //    const BitVector& choices,
+        //    Channel& chl) override {setBaseOts(baseRecvOts, choices);}
 
         // Returns a independent instance of this extender which can 
         // be executed concurrently. The base OTs are derived from the
@@ -71,17 +66,17 @@ namespace osuCrypto {
         // original base OTs.
         std::unique_ptr<OtExtSender> split() override;
 
-        // Takes a destination span of two blocks and performs OT extension
-        // where the destination span is populated (written to) with the random
-        // OT messages that then extension generates. User data is not transmitted. 
-        void send(
-            span<std::array<block, 2>> messages,
-            PRNG& prng,
-            Channel& chl) override;
+        //// Takes a destination span of two blocks and performs OT extension
+        //// where the destination span is populated (written to) with the random
+        //// OT messages that then extension generates. User data is not transmitted. 
+        //void send(
+        //    span<std::array<block, 2>> messages,
+        //    PRNG& prng,
+        //    Channel& chl) override;
 
         // allows the sender to choose the desired difference between the two messaages. If not set
         // a random delta is chosen when send(...) is called.
-        void setDelta(const block& delta);
+        //void setDelta(const block& delta);
     };
 }
 

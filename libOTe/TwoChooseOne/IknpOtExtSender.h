@@ -17,6 +17,7 @@ namespace osuCrypto {
         public OtExtSender, public TimerAdapter
     {
     public: 
+        bool mDeltaOT = false;
         std::array<PRNG, gOtExtBaseOtCount> mGens;
         BitVector mBaseChoiceBits;
 
@@ -28,7 +29,7 @@ namespace osuCrypto {
             span<block> baseRecvOts,
             const BitVector& choices)
         {
-            setBaseOts(baseRecvOts, choices);
+            setUniformBaseOts(baseRecvOts, choices);
         }
 
         void operator=(IknpOtExtSender&&v) 
@@ -56,16 +57,17 @@ namespace osuCrypto {
 
         // Sets the base OTs which must be peformed before calling split or send.
         // See frontend/main.cpp for an example. 
-        void setBaseOts(
+        void setUniformBaseOts(
             span<block> baseRecvOts,
-            const BitVector& choices);
+            const BitVector& choices) override;
 
         // Sets the base OTs which must be peformed before calling split or send.
         // See frontend/main.cpp for an example. 
         void setBaseOts(
             span<block> baseRecvOts,
             const BitVector& choices,
-            Channel& chl) override {setBaseOts(baseRecvOts, choices);}
+            Channel& chl) override {
+            setUniformBaseOts(baseRecvOts, choices);}
 
         // Takes a destination span of two blocks and performs OT extension
         // where the destination span is populated (written to) with the random
@@ -74,6 +76,11 @@ namespace osuCrypto {
             span<std::array<block, 2>> messages,
             PRNG& prng,
             Channel& chl) override;
+
+
+        coproto::Proto send(
+            span<std::array<block, 2>> messages,
+            PRNG& prng);
 
     };
 }

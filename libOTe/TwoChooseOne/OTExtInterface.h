@@ -3,6 +3,8 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Network/Channel.h>
 #include <array>
+#include <coproto/Proto.h>
+
 #ifdef GetMessage
 #undef GetMessage
 #endif
@@ -91,12 +93,20 @@ namespace osuCrypto
     public:
         OtExtReceiver() {}
 
+
+        virtual void setUniformBaseOts(
+            span<std::array<block, 2>> baseSendOts) = 0;
+
         // sets the base OTs that are then used to extend
         virtual void setBaseOts(
             span<std::array<block,2>> baseSendOts,
             PRNG& prng,
             Channel& chl) = 0;
         
+        virtual coproto::Proto setBaseOts(
+            span<std::array<block, 2>> baseSendOts,
+            PRNG& prng);
+
         // the number of base OTs that should be set.
         virtual u64 baseOtCount() const { return gOtExtBaseOtCount; }
 
@@ -109,6 +119,9 @@ namespace osuCrypto
         // use the default base OT class to generate the
         // base OTs that are required.
         virtual void genBaseOts(PRNG& prng, Channel& chl);
+
+
+        virtual coproto::Proto genBaseOts(PRNG& prng);
     };
 
     class OtExtSender : public OtSender
@@ -122,11 +135,19 @@ namespace osuCrypto
         // returns true if the base OTs are currently set.
         virtual bool hasBaseOts() const = 0;
 
+        virtual  void setUniformBaseOts(
+            span<block> baseRecvOts,
+            const BitVector& choices) = 0;
+
         // sets the base OTs that are then used to extend
         virtual void setBaseOts(
             span<block> baseRecvOts,
             const BitVector& choices,
-            Channel& chl)  = 0;
+            Channel& chl) = 0;
+
+        virtual coproto::Proto setBaseOts(
+            span<block> baseRecvOts,
+            const BitVector& choices);
 
         // Returns an indpendent copy of this extender.
         virtual std::unique_ptr<OtExtSender> split() = 0;
@@ -134,6 +155,9 @@ namespace osuCrypto
         // use the default base OT class to generate the
         // base OTs that are required.
         virtual void genBaseOts(PRNG& prng, Channel& chl);
+
+        virtual coproto::Proto genBaseOts(PRNG& prng);
+
     };
 
 

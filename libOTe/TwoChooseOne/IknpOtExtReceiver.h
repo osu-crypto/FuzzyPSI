@@ -7,6 +7,7 @@
 #include <cryptoTools/Crypto/PRNG.h>
 #include <cryptoTools/Common/Timer.h>
 #include <array>
+#include <coproto/Proto.h>
 
 namespace osuCrypto
 {
@@ -15,7 +16,7 @@ namespace osuCrypto
         public OtExtReceiver, public TimerAdapter
     {
     public:
-        bool mHasBase = false;
+        bool mHasBase = false, mDeltaOT = false;
         std::array<std::array<PRNG, 2>, gOtExtBaseOtCount> mGens;
 
 
@@ -25,7 +26,7 @@ namespace osuCrypto
 
         IknpOtExtReceiver(span<std::array<block, 2>> baseSendOts)
         {
-            setBaseOts(baseSendOts);
+            setUniformBaseOts(baseSendOts);
         }
 
         void operator=(IknpOtExtReceiver&& v)
@@ -43,13 +44,13 @@ namespace osuCrypto
         }
 
         // sets the base OTs.
-        void setBaseOts(span<std::array<block, 2>> baseSendOts);
+        void setUniformBaseOts(span<std::array<block, 2>> baseSendOts) override;
 
         // sets the base OTs.
         void setBaseOts(span<std::array<block, 2>> baseSendOts,
             PRNG& prng,
             Channel& chl)override {
-            setBaseOts(baseSendOts);
+            setUniformBaseOts(baseSendOts);
         }
 
         // returns an independent instance of this extender which can securely be
@@ -70,6 +71,12 @@ namespace osuCrypto
             span<block> messages,
             PRNG& prng,
             Channel& chl)override;
+
+
+        coproto::Proto receive(
+            const BitVector& choices,
+            span<block> messages,
+            PRNG& prng);
 
     };
 

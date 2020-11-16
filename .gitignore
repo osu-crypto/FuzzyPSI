@@ -10,6 +10,7 @@
 CMakeFiles/*
 */CMakeFiles/*
 *cmake_install.cmake
+lib/
 
 CMakeCache.txt
 */CMakeCache.txt
