@@ -21,6 +21,10 @@ namespace osuCrypto {
         std::array<PRNG, gOtExtBaseOtCount> mGens;
         BitVector mBaseChoiceBits;
 
+        using OtSender::send;
+        using OtExtSender::setBaseOts;
+
+
         IknpOtExtSender() = default;
         IknpOtExtSender(const IknpOtExtSender&) = delete;
         IknpOtExtSender(IknpOtExtSender&&) = default;
@@ -61,26 +65,12 @@ namespace osuCrypto {
             span<block> baseRecvOts,
             const BitVector& choices) override;
 
-        // Sets the base OTs which must be peformed before calling split or send.
-        // See frontend/main.cpp for an example. 
-        void setBaseOts(
-            span<block> baseRecvOts,
-            const BitVector& choices,
-            Channel& chl) override {
-            setUniformBaseOts(baseRecvOts, choices);}
-
         // Takes a destination span of two blocks and performs OT extension
         // where the destination span is populated (written to) with the random
         // OT messages that then extension generates. User data is not transmitted. 
-        void send(
-            span<std::array<block, 2>> messages,
-            PRNG& prng,
-            Channel& chl) override;
-
-
         coproto::Proto send(
             span<std::array<block, 2>> messages,
-            PRNG& prng);
+            PRNG& prng) override;
 
     };
 }

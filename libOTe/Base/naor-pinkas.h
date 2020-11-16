@@ -19,6 +19,8 @@ namespace osuCrypto
     class NaorPinkas : public OtReceiver, public OtSender
     {
     public:
+        using OtReceiver::receive;
+        using OtSender::send;
 
         void receive(
             const BitVector& choices, 
@@ -30,7 +32,7 @@ namespace osuCrypto
         coproto::Proto receive(
             const BitVector& choices,
             span<block> messages,
-            PRNG& prng);
+            PRNG& prng) override;
 
         void send(
             span<std::array<block, 2>> messages,
@@ -40,24 +42,24 @@ namespace osuCrypto
 
         coproto::Proto send(
             span<std::array<block, 2>> messages,
-            PRNG& prng);
+            PRNG& prng) override;
 
-        void receive(
-            const BitVector& choices,
-            span<block> messages,
-            PRNG& prng,
-            Channel& chl) override
-        {
-            receive(choices, messages, prng, chl, 1);
-        }
+        //void receive(
+        //    const BitVector& choices,
+        //    span<block> messages,
+        //    PRNG& prng,
+        //    Channel& chl) override
+        //{
+        //    receive(choices, messages, prng, chl, 1);
+        //}
 
-        void send(
-            span<std::array<block, 2>> messages,
-            PRNG& prng,
-            Channel& sock) override
-        {
-            send(messages, prng, sock, 1);
-        }
+        //void send(
+        //    span<std::array<block, 2>> messages,
+        //    PRNG& prng,
+        //    Channel& sock) override
+        //{
+        //    send(messages, prng, sock, 1);
+        //}
     };
 
 }

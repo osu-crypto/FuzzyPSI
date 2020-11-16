@@ -19,13 +19,17 @@ namespace osuCrypto
         coproto::Proto receive(
             const BitVector& choices,
             span<block> messages,
-            PRNG& prng);
+            PRNG& prng)override;
 
 
 
         coproto::Proto send(
             span<std::array<block, 2>> messages,
-            PRNG& prng);
+            PRNG& prng)override;
+
+        using OtReceiver::receive;
+        using OtSender::send;
+
 
         void receive(
             const BitVector& choices,
@@ -34,8 +38,7 @@ namespace osuCrypto
             Channel& chl,
             u64 numThreads)
         {
-            auto sock = CoprotoSock(chl);
-            receive(choices, messages, prng).evaluate(sock);
+            receive(choices, messages, prng, chl);
         }
 
         void send(
@@ -47,24 +50,24 @@ namespace osuCrypto
             send(messages, prng, chl);
         }
 
-        void receive(
-            const BitVector& choices,
-            span<block> messages,
-            PRNG& prng,
-            Channel& chl) override
-        {
-            auto sock = CoprotoSock(chl);
-            receive(choices, messages, prng).evaluate(sock);
-        }
+        //void receive(
+        //    const BitVector& choices,
+        //    span<block> messages,
+        //    PRNG& prng,
+        //    Channel& chl) override
+        //{
+        //    auto sock = CoprotoSock(chl);
+        //    receive(choices, messages, prng).evaluate(sock);
+        //}
 
-        void send(
-            span<std::array<block, 2>> messages,
-            PRNG& prng,
-            Channel& chl) override
-        {
-            auto sock = CoprotoSock(chl);
-            send(messages, prng).evaluate(sock);
-        }
+        //void send(
+        //    span<std::array<block, 2>> messages,
+        //    PRNG& prng,
+        //    Channel& chl) override
+        //{
+        //    auto sock = CoprotoSock(chl);
+        //    send(messages, prng).evaluate(sock);
+        //}
     };
 
 }

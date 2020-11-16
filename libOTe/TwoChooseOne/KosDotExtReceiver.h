@@ -18,6 +18,8 @@ namespace osuCrypto
         bool mHasBase = false;
         std::vector<std::array<PRNG, 2>> mGens;
 
+        using OtReceiver::receive;
+
 
         KosDotExtReceiver() = default;
         KosDotExtReceiver(const KosDotExtReceiver&) = delete;
@@ -25,7 +27,7 @@ namespace osuCrypto
 
         KosDotExtReceiver(span<std::array<block, 2>> baseSendOts)
         {
-            setBaseOts(baseSendOts);
+            setUniformBaseOts(baseSendOts);
         }
 
         void operator=(KosDotExtReceiver&& v)
@@ -50,15 +52,14 @@ namespace osuCrypto
 
         // sets the base OTs.
 
-        void setBaseOts(
-            span<std::array<block, 2>> baseSendOts);
+        void setUniformBaseOts(
+            span<std::array<block, 2>> baseSendOts) override;
 
-        void setBaseOts(
-            span<std::array<block, 2>> baseSendOts,
-            PRNG& prng, Channel& chl)override {
-            setBaseOts(baseSendOts);
-        }
-
+        //void setBaseOts(
+        //    span<std::array<block, 2>> baseSendOts,
+        //    PRNG& prng, Channel& chl)override {
+        //    setBaseOts(baseSendOts);
+        //}
 
         // returns an independent instance of this extender which can securely be
         // used concurrently to this current one. The base OTs for the new instance 
@@ -73,11 +74,10 @@ namespace osuCrypto
         // Performed the specicifed number of random OT extensions where the messages
         // receivers are indexed by the choices vector that is passed in. The received
         // values written to the messages parameter. 
-        void receive(
+        coproto::Proto receive(
             const BitVector& choices,
             span<block> messages,
-            PRNG& prng,
-            Channel& chl)override;
+            PRNG& prng) override;
 
     };
 

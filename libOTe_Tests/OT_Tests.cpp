@@ -555,13 +555,13 @@ namespace tests_libOTe
 
 		std::thread thrd = std::thread([&]() {
 			setThreadName("receiver");
-			recv.setBaseOts(baseSend);
+			recv.setUniformBaseOts(baseSend);
 			recv.receive(choices, recvMsg, prng0, recvChannel);
 		});
 
 		block delta = prng1.get<block>();
 		sender.setDelta(delta);
-		sender.setBaseOts(baseRecv, baseChoice);
+		sender.setUniformBaseOts(baseRecv, baseChoice);
 		sender.send(sendMsg, prng1, senderChannel);
 		thrd.join();
 

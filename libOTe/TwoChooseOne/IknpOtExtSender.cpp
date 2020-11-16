@@ -50,19 +50,7 @@ namespace osuCrypto
         }
     }
 
-    void IknpOtExtSender::send(
-        span<std::array<block, 2>> messages,
-        PRNG& prng,
-        Channel& chl)
-    {
-        CoprotoSock s(chl);
-
-        auto ec = send(messages, prng).evaluate(s);
-        if (ec)
-            throw std::runtime_error("IknpOtExtSender::send() " + ec.message());
-        static_assert(gOtExtBaseOtCount == 128, "expecting 128");
-    }
-
+    static_assert(gOtExtBaseOtCount == 128, "expecting 128");
     coproto::Proto IknpOtExtSender::send(span<std::array<block, 2>> messages, PRNG& prng)
     {
         struct PP : public coproto::NativeProto

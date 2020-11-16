@@ -19,6 +19,9 @@ namespace osuCrypto
         bool mHasBase = false, mDeltaOT = false;
         std::array<std::array<PRNG, 2>, gOtExtBaseOtCount> mGens;
 
+        using OtReceiver::receive;
+        using OtExtReceiver::setBaseOts;
+
 
         IknpOtExtReceiver() = default;
         IknpOtExtReceiver(const IknpOtExtReceiver&) = delete;
@@ -46,13 +49,6 @@ namespace osuCrypto
         // sets the base OTs.
         void setUniformBaseOts(span<std::array<block, 2>> baseSendOts) override;
 
-        // sets the base OTs.
-        void setBaseOts(span<std::array<block, 2>> baseSendOts,
-            PRNG& prng,
-            Channel& chl)override {
-            setUniformBaseOts(baseSendOts);
-        }
-
         // returns an independent instance of this extender which can securely be
         // used concurrently to this current one. The base OTs for the new instance 
         // are derived from the orginial base OTs.
@@ -66,17 +62,10 @@ namespace osuCrypto
         // Performed the specicifed number of random OT extensions where the messages
         // receivers are indexed by the choices vector that is passed in. The received
         // values written to the messages parameter. 
-        void receive(
-            const BitVector& choices,
-            span<block> messages,
-            PRNG& prng,
-            Channel& chl)override;
-
-
         coproto::Proto receive(
             const BitVector& choices,
             span<block> messages,
-            PRNG& prng);
+            PRNG& prng) override;
 
     };
 

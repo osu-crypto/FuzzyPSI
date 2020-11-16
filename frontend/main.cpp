@@ -339,6 +339,7 @@ void TwoChooseOne_example(Role role, int totalOTs, int numThreads, std::string i
 		std::array<block, 128> recvMsgs;
 		for (u64 i = 0; i < 128; ++i)
 			recvMsgs[i] = sendMsgs[i][bv[i]];
+
 		senders[0].setBaseOts(recvMsgs, bv, chls[0]);
 	}
 #endif 

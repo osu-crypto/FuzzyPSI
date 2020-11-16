@@ -30,6 +30,9 @@ namespace osuCrypto {
             setBaseOts(baseRecvOts, choices);
         }
 
+        using OtSender::send;
+        //using OtExtSender::setBaseOts;
+
         void operator=(KosDotExtSender&& v)
         {
             mGens = std::move(v.mGens);
@@ -61,24 +64,23 @@ namespace osuCrypto {
 
         // Sets the base OTs which must be peformed before calling split or send.
         // See frontend/main.cpp for an example. 
-        void setBaseOts(
+        void setUniformBaseOts(
             span<block> baseRecvOts,
-            const BitVector& choices);
+            const BitVector& choices) override;
 
-        void setBaseOts(
-            span<block> baseRecvOts,
-            const BitVector& choices,
-            Channel& chl) override {
-            setBaseOts(baseRecvOts, choices);
-        }
+        //void setBaseOts(
+        //    span<block> baseRecvOts,
+        //    const BitVector& choices,
+        //    Channel& chl) override {
+        //    setBaseOts(baseRecvOts, choices);
+        //}
 
         // Takes a destination span of two blocks and performs OT extension
         // where the destination span is populated (written to) with the random
         // OT messages that then extension generates. User data is not transmitted. 
-        void send(
+        coproto::Proto send(
             span<std::array<block, 2>> messages,
-            PRNG& prng,
-            Channel& chl) override;
+            PRNG& prng) override;
 
         void setDelta(const block& delta);
 

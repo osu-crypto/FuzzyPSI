@@ -60,21 +60,7 @@ namespace osuCrypto
         return std::make_unique<IknpOtExtReceiver>(baseRecvOts);
     }
 
-
-    void IknpOtExtReceiver::receive(
-        const BitVector& choices,
-        span<block> messages,
-        PRNG& prng,
-        Channel& chl)
-    {
-        CoprotoSock sock(chl);
-        auto ec = receive(choices, messages, prng).evaluate(sock);
-        if (ec)
-            throw std::runtime_error("IknpOtExtReceiver::send() " + ec.message());
-
-    }
-
-        static_assert(gOtExtBaseOtCount == 128, "expecting 128");
+    static_assert(gOtExtBaseOtCount == 128, "expecting 128");
     coproto::Proto IknpOtExtReceiver::receive(const BitVector& choices, span<block> messages, PRNG& prng)
     {
 

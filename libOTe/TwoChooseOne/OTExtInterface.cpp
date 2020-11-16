@@ -7,6 +7,14 @@
 #include "coproto/Macros.h"
 #include "libOTe/Tools/CoprotoSock.h"
 
+void osuCrypto::OtExtReceiver::setBaseOts(span<std::array<block, 2>> baseSendOts, PRNG& prng, Channel& chl)
+{
+    CoprotoSock s(chl);
+    auto ec = setBaseOts(baseSendOts, prng).evaluate(s);
+    if (ec)
+        throw std::runtime_error("setBaseOts(), " + ec.message());
+}
+
 coproto::Proto osuCrypto::OtExtReceiver::setBaseOts(span<std::array<block, 2>> baseSendOts, PRNG& prng)
 {
     struct Proto : public coproto::NativeProto
@@ -66,6 +74,14 @@ coproto::Proto osuCrypto::OtExtReceiver::genBaseOts(PRNG& prng)
 #else
     throw std::runtime_error("The libOTe library does not have base OTs. Enable them to call this. " LOCATION);
 #endif
+}
+
+void osuCrypto::OtExtSender::setBaseOts(span<block> baseRecvOts, const BitVector& choices, Channel& chl)
+{
+    CoprotoSock s(chl);
+    auto ec = setBaseOts(baseRecvOts, choices).evaluate(s);
+    if (ec)
+        throw std::runtime_error("setBaseOts(), " + ec.message());
 }
 
 coproto::Proto osuCrypto::OtExtSender::setBaseOts(span<block> baseRecvOts, const BitVector& choices)
@@ -137,7 +153,14 @@ coproto::Proto osuCrypto::OtExtSender::genBaseOts(PRNG& prng)
 
 
     return coproto::makeProto<Base>(*this, prng);
-    //return coproto::Proto();
+}
+
+void osuCrypto::OtReceiver::receive(const BitVector& choices, span<block> messages, PRNG& prng, Channel& chl)
+{
+    CoprotoSock s(chl);
+    auto ec = receive(choices, messages, prng).evaluate(s);
+    if (ec)
+        throw std::runtime_error("OtReceiver::receive(), " + ec.message());
 }
 
 void osuCrypto::OtReceiver::receiveChosen(
@@ -170,6 +193,14 @@ void osuCrypto::OtReceiver::receiveCorrelated(const BitVector& choices, span<blo
         ++iter;
     }
 
+}
+
+void osuCrypto::OtSender::send(span<std::array<block, 2>> messages, PRNG& prng, Channel& chl)
+{
+    CoprotoSock s(chl);
+    auto ec = send(messages, prng).evaluate(s);
+    if (ec)
+        throw std::runtime_error("OtSender::send(), " + ec.message());
 }
 
 void osuCrypto::OtSender::sendChosen(
