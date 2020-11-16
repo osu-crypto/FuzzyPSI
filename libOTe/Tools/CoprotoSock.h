@@ -4,6 +4,7 @@
 
 namespace osuCrypto
 {
+	
 
 	struct CoprotoSock : public coproto::Socket
 	{
@@ -35,4 +36,11 @@ namespace osuCrypto
 			mChl.cancel();
 		}
 	};
+
+
+	inline coproto::error_code evaluate(coproto::Proto&& proto, Channel& chl)
+	{
+		CoprotoSock sock(chl);
+		return proto.evaluate(sock);
+	}
 }

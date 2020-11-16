@@ -3,6 +3,8 @@
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Common/MatrixView.h>
 #include <array>
+#include <coproto/Proto.h>
+
 #ifdef GetMessage
 #undef GetMessage
 #endif
@@ -52,15 +54,25 @@ namespace osuCrypto
 
         void genBaseOts(PRNG& prng, Channel& chl);
 
+        coproto::Proto genBaseOts(PRNG& prng);
+
+        virtual void setUniformBaseOts(
+            span<block> baseRecvOts,
+            const BitVector& choices) = 0;
+
         // Sets the base OTs. Note that  getBaseOTCount() number of OTs should be provided
         // @ baseRecvOts: a std vector like container that which holds a series of both 
         //      2-choose-1 OT messages. The sender should hold one of them.
         // @ choices: The select bits that were used in the base OT
         // @ chl: the channel that the data will be received over.
-        virtual void setBaseOts(
+        coproto::Proto setBaseOts(
+            span<block> baseRecvOts,
+            const BitVector& choices);
+
+        void setBaseOts(
             span<block> baseRecvOts,
             const BitVector& choices,
-            Channel& chl) = 0;
+            Channel& chl);
         
 
         // Performs the PRNG expantion and transpose operations. This sets the 
@@ -69,7 +81,9 @@ namespace osuCrypto
         // internal state and creating new OTs.
         // @ numOtExt: denotes the number of OTs that can be used before init
         //      should be called again.
-        virtual void init(u64 numOtExt, PRNG& prng, Channel& chl) = 0;
+        virtual coproto::Proto init(u64 numOtExt, PRNG& prng) = 0;
+
+        void init(u64 numOtExt, PRNG& prng, Channel& chl);
 
         // This function allows the user to obtain the random OT messages of their choice
         // at a given index. 
@@ -109,6 +123,8 @@ namespace osuCrypto
         // is sent. The receiver should call sendCorrection(recvCount) with the same recvCount.
         // @ chl: the channel that the data will be sent over
         // @ recvCount: the number of correction values that should be received.
+        virtual coproto::Proto recvCorrection(u64 recvCount) = 0;
+
         virtual void recvCorrection(Channel& chl, u64 recvCount) = 0;
 
         // An alternative version of the recvCorrection(...) function which dynamically receivers the number of 
@@ -120,7 +136,9 @@ namespace osuCrypto
         // been received. In this case, this method should be called.
         // @ chl: the channel that will be used to communicate
         // @ seed: a random seed that will be used in the function
-        virtual void check(Channel& chl, block seed) = 0;
+        virtual coproto::Proto check(block seed) = 0;
+
+        void check(Channel& chl, block seed);
 
 
         // Creates a new OT extesion of the same type that can be used
@@ -133,6 +151,9 @@ namespace osuCrypto
         // @ messages: the messages that should sent.
         // @ prng: randomness source
         // @ chl: the socket that should be communicated over.
+        coproto::Proto sendChosen(MatrixView<block> messages, PRNG& prng);
+
+
         void sendChosen(MatrixView<block> messages, PRNG& prng, Channel& chl);
     };
 
@@ -170,15 +191,30 @@ namespace osuCrypto
         // congifure(...) should be called first.
         virtual bool isMalicious() const = 0;
 
+
         void genBaseOts(PRNG& prng, Channel& chl);
 
+        coproto::Proto genBaseOts(PRNG& prng);
+
+
+        // Sets the base OTs. Note that  getBaseOTCount() number of OTs should be provided
+        // @ baseRecvOts: a std vector like container that which holds a series of both 
+        //      2-choose-1 OT messages. The sender should hold one of them.
+        // @ choices: The select bits that were used in the base OT
+        // @ chl: the channel that the data will be received over.
+        coproto::Proto setBaseOts(
+            span<std::array<block, 2>> baseOts, PRNG& prng);
+
+        void setBaseOts(
+            span<std::array<block, 2>> baseOts, PRNG& prng,
+            Channel& chl);
+
+        // Warning, can be unsafe to directly used in the malicious setting. use setBaseOts() instread.
         // Sets the base OTs. Note that getBaseOTCount() of OTs should be provided.
         // @ baseSendOts: a std vector like container that which holds a series of both 
         //      2-choose-1 OT messages. The sender should hold one of them.
         // @ prng: A random number generator used to randomize the base OTs.
-        // @ chl:  A channel that is used to send data over.
-        virtual void setBaseOts(span<std::array<block, 2>> baseSendOts, PRNG& prng, Channel& chl) = 0;
-
+        virtual void setUniformBaseOts(span<std::array<block, 2>> baseSendOts) = 0;
 
         // Perform some computation before encode(...) can be called. Note that this
         // can be called several times, with each call creating new OTs to be encoded.
@@ -186,7 +222,9 @@ namespace osuCrypto
         //       i should be less then numOtExt.
         // @ prng: A random number generator for initializing the OTs
         // @ Channel: the channel that should be used to communicate with the sender.
-        virtual void init(u64 numOtExt, PRNG& prng, Channel& chl) = 0;
+        virtual coproto::Proto init(u64 numOtExt, PRNG& prng) = 0;
+
+        void init(u64 numOtExt, PRNG& prng, Channel& chl);
 
         // For the OT at index otIdx, this call compute the OT with 
         // choice value inputWord. 
@@ -221,13 +259,17 @@ namespace osuCrypto
         // is sent. The sender should call recvCorrection(sendCount) with the same sendCount.
         // @ chl: the channel that the data will be sent over
         // @ sendCount: the number of correction values that should be sent.
+        virtual coproto::Proto sendCorrection(u64 sendCount) = 0;
+
         virtual void sendCorrection(Channel& chl, u64 sendCount) = 0;
 
         // Some malicious secure OT extensions require an additional step after all corrections have 
         // been sent. In this case, this method should be called.
         // @ chl: the channel that will be used to communicate
         // @ seed: a random seed that will be used in the function
-        virtual void check(Channel& chl, block seed) = 0;
+        virtual coproto::Proto check(block seed) = 0;
+
+        void check(Channel& chl, block seed);
 
         // Allows a single NcoOtExtReceiver to be split into two, with each being 
         // independent of each other.
@@ -239,6 +281,8 @@ namespace osuCrypto
         // @ choices: the choices for which messages should be received.
         // @ prng: randomness source
         // @ chl: the socket that should be communicated over.
+        coproto::Proto receiveChosen(u64 numMsgsPerOT, span<block> messages, span<u64> choices, PRNG& prng);
+
         void receiveChosen(u64 numMsgsPerOT, span<block> messages, span<u64> choices, PRNG& prng, Channel& chl);
     };
 

@@ -27,7 +27,7 @@ namespace osuCrypto {
             span<block> baseRecvOts,
             const BitVector& choices)
         {
-            setBaseOts(baseRecvOts, choices);
+            setUniformBaseOts(baseRecvOts, choices);
         }
 
         using OtSender::send;

@@ -52,6 +52,7 @@ namespace tests_libOTe
         tc.add("NcoOt_Oos_Test                     ", NcoOt_Oos_Test);
         tc.add("NcoOt_Rr17_Test                    ", NcoOt_Rr17_Test);
         tc.add("NcoOt_genBaseOts_Test              ", NcoOt_genBaseOts_Test);
+        tc.add("NcoOt_chosen                       ", NcoOt_chosen);
 
         tc.add("AknOt_sendRecv1000_Test            ", AknOt_sendRecv1000_Test);
 

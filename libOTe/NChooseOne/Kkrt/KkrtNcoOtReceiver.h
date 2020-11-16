@@ -92,18 +92,9 @@ namespace osuCrypto
             return mGensBlkIdx.size();
         }
 
-        // Sets the base OTs. Note that getBaseOTCount() of OTs should be provided.
-        // @ baseSendOts: a std vector like container that which holds a series of both 
-        //      2-choose-1 OT messages. The sender should hold one of them.
-        // @ prng: not used.
-        // @ chl: not used.
-        void setBaseOts(gsl::span<std::array<block, 2>> baseRecvOts, PRNG& prng, Channel& chl) override
-        {
-            setBaseOts(baseRecvOts);
-        }
         
-        // See other setBaseOts(...);
-        void setBaseOts(gsl::span<std::array<block, 2>> baseRecvOts);
+        // See other NcoOtExtReceiver::setBaseOts(...);
+        void setUniformBaseOts(gsl::span<std::array<block, 2>> baseRecvOts);
 
         // Perform some computation before encode(...) can be called. Note that this
         // can be called several times, with each call creating new OTs to be encoded.
@@ -111,8 +102,10 @@ namespace osuCrypto
         //       i should be less then numOtExt.
         // @ prng: A random number generator for initializing the OTs
         // @ Channel: the channel that should be used to communicate with the sender.
-        void init(u64 numOtExt, PRNG& prng, Channel& chl) override;
+        coproto::Proto init(u64 numOtExt, PRNG& prng) override final;
 
+        using NcoOtExtReceiver::init;
+        using NcoOtExtReceiver::check;
         using NcoOtExtReceiver::encode;
 
         // For the OT at index otIdx, this call compute the OT with 
@@ -128,13 +121,13 @@ namespace osuCrypto
             u64 otIdx,
             const void* inputword,
             void* dest,
-            u64 destSize ) override;
+            u64 destSize ) override final;
 
         // An optimization if the receiver does not want to use this otIdx. 
         // Note that simply note calling encode(otIdx,...) or zeroEncode(otIdx)
         // for some otIdx is insecure.
         // @ otIdx: the index of that OT that should be skipped.
-        void zeroEncode(u64 otIdx) override;
+        void zeroEncode(u64 otIdx) override final;
 
         // The way that this class works is that for each encode(otIdx,...), some internal 
         // data for each otIdx is generated and stored. This data (corrections) has to be sent to the sender
@@ -145,17 +138,20 @@ namespace osuCrypto
         // is sent. The sender should call recvCorrection(sendCount) with the same sendCount.
         // @ chl: the channel that the data will be sent over
         // @ sendCount: the number of correction values that should be sent.
-        void sendCorrection(Channel& chl, u64 sendCount) override;
+        coproto::Proto sendCorrection(u64 sendCount) override final;
+
+
+        void sendCorrection(Channel& chl, u64 sendCount) override final;
 
         // Some malicious secure OT extensions require an additional step after all corrections have 
         // been sent. In this case, this method should be called.
         // @ chl: the channel that will be used to communicate
         // @ seed: a random seed that will be used in the function
-        void check(Channel& chl, block seed) override {}
+        coproto::Proto check(block seed) override final { return {}; }
 
         // Allows a single NcoOtExtReceiver to be split into two, with each being 
         // independent of each other.
-        std::unique_ptr<NcoOtExtReceiver> split() override;
+        std::unique_ptr<NcoOtExtReceiver> split() override final;
 
 
         // Allows a single NcoOtExtReceiver to be split into two, with each being 

@@ -6,6 +6,9 @@
 #include <cryptoTools/Network/Channel.h>
 #include "OosDefines.h"
 
+#include <coproto/NativeProto.h>
+#include <coproto/Macros.h>
+
 namespace osuCrypto
 {
 
@@ -15,16 +18,6 @@ namespace osuCrypto
             return mGens.size();
         else
             throw std::runtime_error("must call configure(...) before getBaseOTCount() " LOCATION);
-    }
-
-    void OosNcoOtSender::setBaseOts(
-        span<block> baseRecvOts,
-        const BitVector & choices, Channel& chl)
-    {
-        BitVector delta(choices.size());
-        chl.recv(delta);
-
-        setUniformBaseOts(baseRecvOts, choices ^ delta);
     }
 
     void OosNcoOtSender::setUniformBaseOts(span<block> baseRecvOts, const BitVector& uniformChoices)
@@ -80,95 +73,121 @@ namespace osuCrypto
     }
 
 
-    void OosNcoOtSender::init(
-        u64 numOTExt, PRNG& prng, Channel& chl)
+    coproto::Proto OosNcoOtSender::init(
+        u64 numOTExt, PRNG& prng)
     {
         const u8 superBlkSize(8);
 
-        if (mInputByteCount == 0)
-            throw std::runtime_error("configure must be called first" LOCATION);
-
-        if (hasBaseOts() == false)
-            genBaseOts(prng, chl);
-
-        // round up
-        numOTExt = ((numOTExt + 127 + mStatSecParam) / 128) * 128;
-
-        // We need two matrices, one for the senders matrix T^i_{b_i} and
-        // one to hold the the correction values. This is sometimes called
-        // the u = T0 + T1 + C matrix in the papers.
-        mCorrectionVals = Matrix<block>();
-        mCorrectionVals.resize(numOTExt, mGens.size() / 128);
-        mT = Matrix<block>();
-        mT.resize(numOTExt, mGens.size() / 128);
-
-        // The receiver will send us correction values, this is the index of
-        // the next one they will send.
-        mCorrectionIdx = 0;
-
-        // we are going to process OTs in blocks of 128 * superblkSize messages.
-        u64 numSuperBlocks = (numOTExt / 128 + superBlkSize - 1) / superBlkSize;
-
-        // the index of the last OT that we have completed.
-        u64 doneIdx = 0;
-
-        // a temp that will be used to transpose the sender's matrix
-        std::array<std::array<block, superBlkSize>, 128> t;
-
-        u64 numCols = mGens.size();
-
-
-        for (u64 superBlkIdx = 0; superBlkIdx < numSuperBlocks; ++superBlkIdx)
+        struct Proto : public coproto::NativeProto
         {
-            // compute at what row does the user want use to stop.
-            // the code will still compute the transpose for these
-            // extra rows, but it is thrown away.
-            u64 stopIdx
-                = doneIdx
-                + std::min<u64>(u64(128) * superBlkSize, mT.bounds()[0] - doneIdx);
+            OosNcoOtSender& ot;
+            u64 numOTExt; 
+            PRNG& prng;
+            Proto(OosNcoOtSender& o, u64 n, PRNG& p)
+                :ot(o)
+                , numOTExt(n)
+                , prng(p)
+            {}
 
-            for (u64 i = 0; i < numCols / 128; ++i)
+
+            coproto::error_code resume() override
             {
+                CP_BEGIN();
 
-                // transpose 128 columns at at time. Each column will be 128 * superBlkSize = 1024 bits long.
-                for (u64 tIdx = 0, colIdx = i * 128; tIdx < 128; ++tIdx, ++colIdx)
+                if (ot.mInputByteCount == 0)
+                    throw std::runtime_error("configure must be called first" LOCATION);
+
+                if (ot.hasBaseOts() == false)
+                    CP_AWAIT(ot.genBaseOts(prng));
+
                 {
-                    // generate the columns using AES-NI in counter mode.
-                    mGens[colIdx].mAes.ecbEncCounterMode(mGens[colIdx].mBlockIdx, superBlkSize, ((block*)t.data() + superBlkSize * tIdx));
-                    mGens[colIdx].mBlockIdx += superBlkSize;
-                }
+                    // round up
+                    numOTExt = ((numOTExt + 127 + ot.mStatSecParam) / 128) * 128;
 
-                // transpose our 128 columns of 1024 bits. We will have 1024 rows,
-                // each 128 bits wide.
-                transpose128x1024(t);
+                    // We need two matrices, one for the senders matrix T^i_{b_i} and
+                    // one to hold the the correction values. This is sometimes called
+                    // the u = T0 + T1 + C matrix in the papers.
+                    ot.mCorrectionVals = Matrix<block>();
+                    ot.mCorrectionVals.resize(numOTExt, ot.mGens.size() / 128);
+                    ot.mT = Matrix<block>();
+                    ot.mT.resize(numOTExt, ot.mGens.size() / 128);
 
-                // This is the index of where we will store the matrix long term.
-                // doneIdx is the starting row. l is the offset into the blocks of 128 bits.
-                // __restrict isn't crucial, it just tells the compiler that this pointer
-                // is unique and it shouldn't worry about pointer aliasing.
-                block* __restrict mTIter = mT.data() + doneIdx * mT.stride() + i;
+                    // The receiver will send us correction values, this is the index of
+                    // the next one they will send.
+                    ot.mCorrectionIdx = 0;
 
-                for (u64 rowIdx = doneIdx, j = 0; rowIdx < stopIdx; ++j)
-                {
-                    // because we transposed 1024 rows, the indexing gets a bit weird. But this
-                    // is the location of the next row that we want. Keep in mind that we had long
-                    // **contiguous** columns.
-                    block* __restrict tIter = (((block*)t.data()) + j);
+                    // we are going to process OTs in blocks of 128 * superblkSize messages.
+                    u64 numSuperBlocks = (numOTExt / 128 + superBlkSize - 1) / superBlkSize;
 
-                    // do the copy!
-                    for (u64 k = 0; rowIdx < stopIdx && k < 128; ++rowIdx, ++k)
+                    // the index of the last OT that we have completed.
+                    u64 doneIdx = 0;
+
+                    // a temp that will be used to transpose the sender's matrix
+                    std::array<std::array<block, superBlkSize>, 128> t;
+
+                    u64 numCols = ot.mGens.size();
+
+
+                    for (u64 superBlkIdx = 0; superBlkIdx < numSuperBlocks; ++superBlkIdx)
                     {
-                        *mTIter = *tIter;
+                        // compute at what row does the user want use to stop.
+                        // the code will still compute the transpose for these
+                        // extra rows, but it is thrown away.
+                        u64 stopIdx
+                            = doneIdx
+                            + std::min<u64>(u64(128) * superBlkSize, ot.mT.bounds()[0] - doneIdx);
 
-                        tIter += superBlkSize;
-                        mTIter += mT.stride();
+                        for (u64 i = 0; i < numCols / 128; ++i)
+                        {
+
+                            // transpose 128 columns at at time. Each column will be 128 * superBlkSize = 1024 bits long.
+                            for (u64 tIdx = 0, colIdx = i * 128; tIdx < 128; ++tIdx, ++colIdx)
+                            {
+                                // generate the columns using AES-NI in counter mode.
+                                ot.mGens[colIdx].mAes.ecbEncCounterMode(ot.mGens[colIdx].mBlockIdx, superBlkSize, ((block*)t.data() + superBlkSize * tIdx));
+                                ot.mGens[colIdx].mBlockIdx += superBlkSize;
+                            }
+
+                            // transpose our 128 columns of 1024 bits. We will have 1024 rows,
+                            // each 128 bits wide.
+                            transpose128x1024(t);
+
+                            // This is the index of where we will store the matrix long term.
+                            // doneIdx is the starting row. l is the offset into the blocks of 128 bits.
+                            // __restrict isn't crucial, it just tells the compiler that this pointer
+                            // is unique and it shouldn't worry about pointer aliasing.
+                            block* __restrict mTIter = ot.mT.data() + doneIdx * ot.mT.stride() + i;
+
+                            for (u64 rowIdx = doneIdx, j = 0; rowIdx < stopIdx; ++j)
+                            {
+                                // because we transposed 1024 rows, the indexing gets a bit weird. But this
+                                // is the location of the next row that we want. Keep in mind that we had long
+                                // **contiguous** columns.
+                                block* __restrict tIter = (((block*)t.data()) + j);
+
+                                // do the copy!
+                                for (u64 k = 0; rowIdx < stopIdx && k < 128; ++rowIdx, ++k)
+                                {
+                                    *mTIter = *tIter;
+
+                                    tIter += superBlkSize;
+                                    mTIter += ot.mT.stride();
+                                }
+                            }
+
+                        }
+
+                        doneIdx = stopIdx;
                     }
                 }
-
+                CP_END();
+                return {};
             }
 
-            doneIdx = stopIdx;
-        }
+        };
+
+        return coproto::makeProto<Proto>(*this, numOTExt, prng);
+
     }
 
 
@@ -363,54 +382,78 @@ namespace osuCrypto
         return numCorrections;
     }
 
-    void OosNcoOtSender::check(Channel & chl, block seed)
+
+    coproto::Proto OosNcoOtSender::recvCorrection(u64 recvCount)
+    {
+
+        // receive the next OT correction values. This will be several rows of the form u = T0 + T1 + C(w)
+        // there c(w) is a pseudo-random code.
+        auto dest = &mCorrectionVals(mCorrectionIdx, 0);
+
+        // update the index of there we should store the next set of correction values.
+        mCorrectionIdx += recvCount;
+
+        coproto::span<block> data(dest, recvCount * mCorrectionVals.stride());
+
+        return coproto::recv(data);
+        //return coproto::Proto();
+    }
+
+
+    coproto::Proto OosNcoOtSender::check(block seed)
     {
         if (mMalicious)
         {
-            //char c;
-            //chl.recv((u8*)&c, 1);
-            //std::cout << IoStream::lock << "sender " << std::endl;;
+            struct Proto : coproto::NativeProto
+            {
+                OosNcoOtSender& ot;
+                block seed;
+                Proto(OosNcoOtSender& o, block s)
+                    :ot(o)
+                    , seed(s)
+                {}
+                coproto::error_code resume() override
+                {
+                    CP_BEGIN();
 
-            //for (u64 i = 0; i < mCorrectionIdx; ++i)
-            //{
-            //    for (u64 j = 0; j < mCorrectionVals.stride(); ++j)
-            //    {
-            //        std::cout << mCorrectionVals[i][j] << " ";
-            //    }
-            //    std::cout << std::endl;
-            //}
+                    if (ot.mStatSecParam % 8) throw std::runtime_error("Must be a multiple of 8. " LOCATION);
+                    // first we need to receive the extra mStatSecParam number of correction
+                    // values. This will just be for random inputs and are used to mask
+                    // their true choices that were used in the remaining correction values.
+                    CP_AWAIT(ot.recvFinalization());
+                    // now send them out challenge seed.
+                    CP_AWAIT(ot.sendChallenge(seed));
+                    ot.computeProof();
+                    CP_AWAIT(ot.recvProof());
 
-            //std::cout << IoStream::unlock;
+                    CP_END();
+                    return {};
+                }
 
-            if (mStatSecParam % 8) throw std::runtime_error("Must be a multiple of 8. " LOCATION);
-
-            // first we need to receive the extra mStatSecParam number of correction
-            // values. This will just be for random inputs and are used to mask
-            // their true choices that were used in the remaining correction values.
-            recvFinalization(chl);
-
-            // now send them out challenge seed.
-            sendChallenge(chl, seed);
-            computeProof();
-            recvProof(chl);
-            //std::cout << "pass" << std::endl;
+            };
+            return coproto::makeProto<Proto>(*this, seed);
+        }
+        else
+        {
+            return {};
         }
 
     }
 
-    void OosNcoOtSender::recvFinalization(Channel & chl)
+    coproto::Proto OosNcoOtSender::recvFinalization()
     {
         // first we need to receive the extra mStatSecParam number of correction
         // values. This will just be for random inputs and are used to mask
         // their true choices that were used in the remaining correction values.
-        recvCorrection(chl, mStatSecParam);
+        return recvCorrection(mStatSecParam);
     }
 
 
-    void OosNcoOtSender::sendChallenge(Channel & chl, block seed)
+    coproto::Proto OosNcoOtSender::sendChallenge(block seed)
     {
         mChallengeSeed = seed;
-        chl.asyncSend(mChallengeSeed);
+        return coproto::send(mChallengeSeed);
+        //chl.asyncSend(mChallengeSeed);
     }
 
     void OosNcoOtSender::computeProof()
@@ -682,46 +725,66 @@ namespace osuCrypto
         }
     }
 
-    void OosNcoOtSender::recvProof(Channel & chl)
+    coproto::Proto OosNcoOtSender::recvProof()
     {
-
-        std::vector<block> tSum(mStatSecParam * mT.stride());
-        std::vector<block> wSum(mStatSecParam * mCode.plaintextBlkSize());
-
-        // now wait for the receiver's challenge answer.
-        chl.recv((u8*)tSum.data(), tSum.size() * sizeof(block));
-        chl.recv((u8*)wSum.data(), wSum.size() * sizeof(block));
-
-        // a buffer to store codewords
-        std::vector<block> cw(mCode.codewordBlkSize());
-
-        // check each of the mStatSecParam number of challenges
-        for (u64 l = 0; l < mStatSecParam; ++l)
+        struct Proto : coproto::NativeProto
         {
+            OosNcoOtSender& ot;
+            Proto(OosNcoOtSender& o)
+                :ot(o)
+            {}
+            std::vector<block> tSum, wSum;
 
-            span<block> word(
-                wSum.data() + l * mCode.plaintextBlkSize(),
-                mCode.plaintextBlkSize());
-
-            // encode their l'th linear combination of choice words.
-            mCode.encode(word, cw);
-
-            // check that the linear relation holds.
-            for (u64 j = 0; j < cw.size(); ++j)
+            coproto::error_code resume() override
             {
-                block tq = tSum[l * cw.size() + j] ^ qSum[l * cw.size() + j];
-                block cb = cw[j] & mChoiceBlks[j];
+                CP_BEGIN();
 
-                if (neq(tq, cb))
+                tSum.resize(ot.mStatSecParam * ot.mT.stride());
+                wSum.resize(ot.mStatSecParam * ot.mCode.plaintextBlkSize());
+
+                // now wait for the receiver's challenge answer.
+                CP_RECV(tSum);
+                CP_RECV(wSum);
+                //chl.recv((u8*)tSum.data(), tSum.size() * sizeof(block));
+                //chl.recv((u8*)wSum.data(), wSum.size() * sizeof(block));
                 {
-                    //std::cout << "bad OOS16 OT check. " << l << "m " << j << std::endl;
-                    //return;
-                    throw std::runtime_error("bad OOS16 OT check. " LOCATION);
+                    // a buffer to store codewords
+                    std::vector<block> cw(ot.mCode.codewordBlkSize());
+
+                    // check each of the mStatSecParam number of challenges
+                    for (u64 l = 0; l < ot.mStatSecParam; ++l)
+                    {
+
+                        span<block> word(
+                            wSum.data() + l * ot.mCode.plaintextBlkSize(),
+                            ot.mCode.plaintextBlkSize());
+
+                        // encode their l'th linear combination of choice words.
+                        ot.mCode.encode(word, cw);
+
+                        // check that the linear relation holds.
+                        for (u64 j = 0; j < cw.size(); ++j)
+                        {
+                            block tq = tSum[l * cw.size() + j] ^ ot.qSum[l * cw.size() + j];
+                            block cb = cw[j] & ot.mChoiceBlks[j];
+
+                            if (neq(tq, cb))
+                            {
+                                //std::cout << "bad OOS16 OT check. " << l << "m " << j << std::endl;
+                                //return;
+                                throw std::runtime_error("bad OOS16 OT check. " LOCATION);
+                            }
+                        }
+
+                    }
                 }
+
+                CP_END();
+                return {};
             }
+        };
 
-        }
-
+        return coproto::makeProto<Proto>(*this);
     }
 
 

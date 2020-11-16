@@ -33,6 +33,8 @@
 #include "cryptoTools/Common/BitVector.h"
 #include "cryptoTools/Crypto/PRNG.h"
 
+#include "coproto/LocalEvaluator.h"
+
 using namespace osuCrypto;
 
 
@@ -42,9 +44,7 @@ namespace tests_libOTe
 {
 
     void setBaseOts(NcoOtExtSender& sender,
-        NcoOtExtReceiver& recv,
-        Channel& sendChl,
-        Channel& recvChl)
+        NcoOtExtReceiver& recv)
     {
         u64 baseCount = sender.getBaseOTCount();
 
@@ -60,9 +60,13 @@ namespace tests_libOTe
             baseRecv[i] = baseSend[i][baseChoice[i]];
         }
 
-        auto a = std::async([&]() {sender.setBaseOts(baseRecv, baseChoice, sendChl); });
-        recv.setBaseOts(baseSend, prng0, recvChl);
-        a.get();
+        auto p0 = sender.setBaseOts(baseRecv, baseChoice);
+        auto p1 = recv.setBaseOts(baseSend, prng0);
+
+        coproto::LocalEvaluator eval;
+        auto ec = eval.execute(p0, p1);
+        if (ec)
+            throw std::runtime_error(ec.message());
     }
 
 
@@ -70,10 +74,8 @@ namespace tests_libOTe
         NcoOtExtSender &sender,
         const u64 &numOTs,
         PRNG &prng0,
-        Channel &sendChl,
         NcoOtExtReceiver &recv,
-        PRNG &prng1,
-        Channel &recvChl)
+        PRNG &prng1)
     {
 
         u64 stepSize = 33;
@@ -83,12 +85,16 @@ namespace tests_libOTe
         for (size_t j = 0; j < 10; j++)
         {
             // perform the init on each of the classes. should be performed concurrently
-            auto thrd = std::thread([&]() {
-                setThreadName("Sender");
-                sender.init(numOTs, prng0, sendChl);
-            });
-            recv.init(numOTs, prng1, recvChl);
-            thrd.join();
+            auto p0 = sender.init(numOTs, prng0);
+            auto p1 = recv.init(numOTs, prng1);
+
+            coproto::LocalEvaluator eval;
+            auto ec = eval.execute(p0, p1);
+            if (ec)
+                throw std::runtime_error(ec.message());
+
+            auto& socket0 = eval.mBlkSocks[0];
+            auto& socket1 = eval.mBlkSocks[1];
 
             std::vector<block> encoding1(stepSize), encoding2(stepSize);
 
@@ -120,11 +126,11 @@ namespace tests_libOTe
                 // If we had made more or less calls to encode above (for contigious i), then we should replace
                 // curStepSize  with however many calls we made. In an extreme case, the reciever can perform
                 // encode for i \in {0, ..., numOTs - 1}  and then call sendCorrection(recvChl, numOTs).
-                recv.sendCorrection(recvChl, curStepSize);
+                recv.sendCorrection(curStepSize).evaluate(socket0);
 
                 // receive the next curStepSize  correction values. This allows the sender to now call encode
                 // on the next curStepSize  OTs.
-                sender.recvCorrection(sendChl, curStepSize);
+                sender.recvCorrection(curStepSize).evaluate(socket1);
 
                 for (u64 k = 0; k < curStepSize; ++k)
                 {
@@ -188,16 +194,16 @@ namespace tests_libOTe
         }
 
         // set up networking
-        IOService ios;
-        Session ep0(ios, "localhost", 1212, SessionMode::Server);
-        Session ep1(ios, "localhost", 1212, SessionMode::Client);
-        auto recvChl = ep1.addChannel();
-        auto sendChl = ep0.addChannel();
+        //IOService ios;
+        //Session ep0(ios, "localhost", 1212, SessionMode::Server);
+        //Session ep1(ios, "localhost", 1212, SessionMode::Client);
+        //auto recvChl = ep1.addChannel();
+        //auto sendChl = ep0.addChannel();
 
 
         // set the base OTs
-        sender.setBaseOts(baseRecv, baseChoice);
-        recv.setBaseOts(baseSend);
+        sender.setUniformBaseOts(baseRecv, baseChoice);
+        recv.setUniformBaseOts(baseSend);
 
         u64 stepSize = 10;
         std::vector<block> inputs(stepSize);
@@ -205,9 +211,17 @@ namespace tests_libOTe
         for (size_t j = 0; j < 2; j++)
         {
             // perform the init on each of the classes. should be performed concurrently
-            auto thrd = std::thread([&]() { sender.init(numOTs, prng0, sendChl); });
-            recv.init(numOTs, prng1, recvChl);
-            thrd.join();
+            //auto thrd = std::thread([&]() { 
+            //    });
+            //thrd.join();
+            coproto::LocalEvaluator eval;
+            auto p0 = sender.init(numOTs, prng0); 
+            auto p1 = recv.init(numOTs, prng1);
+            auto ec= eval.execute(p0, p1, coproto::LocalEvaluator::interlace);
+            if (ec)
+                throw std::runtime_error(ec.message());
+            auto& socket0 = eval.mBlkSocks[0];
+            auto& socket1 = eval.mBlkSocks[1];
 
             std::vector<block> encoding1(stepSize), encoding2(stepSize);
 
@@ -231,11 +245,11 @@ namespace tests_libOTe
                 // If we had made more or less calls to encode above (for contigious i), then we should replace
                 // stepSize with however many calls we made. In an extreme case, the reciever can perform
                 // encode for i \in {0, ..., numOTs - 1}  and then call sendCorrection(recvChl, numOTs).
-                recv.sendCorrection(recvChl, stepSize);
+                recv.sendCorrection(stepSize).evaluate(socket0);
 
                 // receive the next stepSize correction values. This allows the sender to now call encode
                 // on the next stepSize OTs.
-                sender.recvCorrection(sendChl, stepSize);
+                sender.recvCorrection(stepSize).evaluate(socket1);
 
                 for (u64 k = 0; k < stepSize; ++k)
                 {
@@ -259,6 +273,12 @@ namespace tests_libOTe
                         throw UnitTestFail(LOCATION);
                 }
             }
+
+
+            p0 = sender.check(prng0.get());
+            p1 = recv.check(prng1.get());
+            eval.execute(p0, p1, coproto::LocalEvaluator::interlace);
+
         }
 
         // Double check that we can call split and perform the same tests.
@@ -270,13 +290,16 @@ namespace tests_libOTe
 
         for (size_t j = 0; j < 2; j++)
         {
-            auto thrd = std::thread([&]() {
-                send2.init(numOTs, prng0, sendChl);
-            });
+            //auto thrd = std::thread([&]() { });
 
-            recv2.init(numOTs, prng1, recvChl);
+            auto p0 = send2.init(numOTs, prng0);
+            auto p1 = recv2.init(numOTs, prng1);
 
-            thrd.join();
+            coproto::LocalEvaluator eval;
+            eval.execute(p0, p1);
+            auto& socket0 = eval.mBlkSocks[0];
+            auto& socket1 = eval.mBlkSocks[1];
+            //thrd.join();
 
 
             for (u64 i = 0; i < numOTs; ++i)
@@ -286,8 +309,8 @@ namespace tests_libOTe
                 block encoding1, encoding2;
                 recv2.encode(i, &input, &encoding1);
 
-                recv2.sendCorrection(recvChl, 1);
-                send2.recvCorrection(sendChl, 1);
+                recv2.sendCorrection(1).evaluate(socket0);
+                send2.recvCorrection(1).evaluate(socket1);
 
                 send2.encode(i, &input, &encoding2);
 
@@ -316,13 +339,13 @@ throw UnitTestSkipped("ENALBE_KKRT is not defined.");
         PRNG prng0(block(4253465, 3434565));
         PRNG prng1(block(42532335, 334565));
 
-        u64 numOTs = 128 * 16;
+        u64 numOTs = 1030;
 
-        IOService ios(0);
-        Session ep0(ios, "localhost", 1212, SessionMode::Server);
-        Session ep1(ios, "localhost", 1212, SessionMode::Client);
-        auto recvChl = ep1.addChannel();
-        auto sendChl = ep0.addChannel();
+        //IOService ios(0);
+        //Session ep0(ios, "localhost", 1212, SessionMode::Server);
+        //Session ep1(ios, "localhost", 1212, SessionMode::Client);
+        //auto recvChl = ep1.addChannel();
+        //auto sendChl = ep0.addChannel();
 
         OosNcoOtSender sender;
         OosNcoOtReceiver recv;
@@ -330,48 +353,29 @@ throw UnitTestSkipped("ENALBE_KKRT is not defined.");
         sender.configure(true, 40, 50);
         recv.configure(true, 40, 50);
 
-        if (1)
+        setBaseOts(sender, recv);
+
+        for (u64 i = 0; i < sender.mBaseChoiceBits.size(); ++i)
         {
-            setBaseOts(sender, recv, sendChl, recvChl);
-        }
-        else
-        {
-            u64 baseCount = sender.getBaseOTCount();
-            std::vector<block> baseRecv(baseCount);
-            std::vector<std::array<block, 2>> baseSend(baseCount);
-            BitVector baseChoice(baseCount);
-            baseChoice.randomize(prng0);
-
-            prng0.get((u8*)baseSend.data()->data(), sizeof(block) * 2 * baseSend.size());
-            for (u64 i = 0; i < baseCount; ++i)
-            {
-                baseRecv[i] = baseSend[i][baseChoice[i]];
-            }
-
-            auto a = std::async([&]() {sender.setBaseOts(baseRecv, baseChoice, sendChl); });
-            recv.setBaseOts(baseSend, prng0, recvChl);
-            a.get();
+            if (recv.mGens[i][sender.mBaseChoiceBits[i]].getSeed() !=
+                sender.mGens[i].getSeed())
+                throw RTE_LOC;
         }
 
+        testNco(sender, numOTs, prng0, recv, prng1);
 
-        testNco(sender, numOTs, prng0, sendChl, recv, prng1, recvChl);
+        auto p0 = recv.check(toBlock(322334)); 
+        auto p1 = sender.check(toBlock(324));
 
-        auto v = std::async([&] { 
-            recv.check(recvChl, toBlock(322334)); 
-        });
-
-        try {
-            sender.check(sendChl,toBlock(324));
-        }
-        catch (...)
-        {
-        }
-        v.get();
+        coproto::LocalEvaluator eval;
+        auto ec = eval.execute(p0, p1);
+        if (ec)
+            throw std::runtime_error(ec.message());
 
         auto sender2 = sender.split();
         auto recv2 = recv.split();
 
-        testNco(*sender2, numOTs, prng0, sendChl, *recv2, prng1, recvChl);
+        testNco(*sender2, numOTs, prng0, *recv2, prng1);
 
 #else
         throw UnitTestSkipped("ENALBE_OOS is not defined.");
@@ -434,13 +438,13 @@ throw UnitTestSkipped("ENALBE_KKRT is not defined.");
         sender.configure(true, 40, inputSize);
         recv.configure(true, 40, inputSize);
 
-        IOService ios;
-        Session ep0(ios, "localhost", 1212, SessionMode::Server);
-        Session ep1(ios, "localhost", 1212, SessionMode::Client);
-        auto recvChl = ep1.addChannel();
-        auto sendChl = ep0.addChannel();
+        //IOService ios;
+        //Session ep0(ios, "localhost", 1212, SessionMode::Server);
+        //Session ep1(ios, "localhost", 1212, SessionMode::Client);
+        //auto recvChl = ep1.addChannel();
+        //auto sendChl = ep0.addChannel();
 
-        setBaseOts(sender, recv, sendChl, recvChl);
+        setBaseOts(sender, recv);
 
         auto messageCount = 1ull << inputSize;
         Matrix<block> sendMessage(numOTs, messageCount);
@@ -455,12 +459,14 @@ throw UnitTestSkipped("ENALBE_KKRT is not defined.");
             choices[i] = prng0.get<u8>();
         }
 
-        auto thrd = std::thread([&]() {
-            recv.receiveChosen(messageCount, recvMessage, choices, prng1, recvChl);
-        });
+        auto p0 = recv.receiveChosen(messageCount, recvMessage, choices, prng1);
+        auto p1 = sender.sendChosen(sendMessage, prng0);
 
-        sender.sendChosen(sendMessage, prng0, sendChl);
-        thrd.join();
+        coproto::LocalEvaluator eval;
+        auto ec  = eval.execute(p0, p1);
+        if (ec)
+            throw std::runtime_error(ec.message());
+
 
         for (u64 i = 0; i < choices.size(); ++i)
         {
