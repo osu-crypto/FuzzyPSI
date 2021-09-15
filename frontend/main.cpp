@@ -26,7 +26,10 @@ using namespace osuCrypto;
 #include "ExampleVole.h"
 #include "libOTe/Tools/LDPC/LdpcImpulseDist.h"
 
+#include "fuzzyPSI.h"
+
 static const std::vector<std::string>
+f{"f", "fuzzyPSI"},
 unitTestTag{ "u", "unitTest" },
 kos{ "k", "kos" },
 dkos{ "d", "dkos" },
@@ -116,6 +119,16 @@ int main(int argc, char** argv)
         return 0;
     }
 
+    if (cmd.isSet("f"))
+    {
+        std::cout << "Let's do fuzzy PSI " << std::endl; 
+        fuzzyPSI(3);
+        //flagSet |= runIf(baseOT_example<MasnyRindal>, cmd, f);
+        //LdpcDecode_impulse(cmd);
+        return 0;
+    }
+
+
     if (cmd.isSet(unitTestTag))
     {
         flagSet = true;
@@ -186,6 +199,11 @@ int main(int argc, char** argv)
         factory.Update(domain, std::strlen(domain));
         baseOT_example_from_ot(role, totalOTs, numThreads, ip, tag, clp, McRosRoyMul(factory));
     }, cmd, ristrettopopf, {"feistelMul"});
+#endif
+
+#ifdef ENABLE_FUZZY
+    std::cout << "enable fuzzy " << std::endl; 
+    flagSet |= runIf(baseOT_example<MasnyRindal>, cmd, f);
 #endif
 
 #ifdef ENABLE_MR
@@ -262,6 +280,7 @@ int main(int argc, char** argv)
             << Color::Green << "  -t            " << Color::Default << ": the number of threads that should be used\n"
             << Color::Green << "  -u            " << Color::Default << ": to run the unit tests\n"
             << Color::Green << "  -u -list      " << Color::Default << ": to list the unit tests\n"
+
             << Color::Green << "  -u 1 2 15     " << Color::Default << ": to run the unit tests indexed by {1, 2, 15}.\n"
             << std::endl;
     }
