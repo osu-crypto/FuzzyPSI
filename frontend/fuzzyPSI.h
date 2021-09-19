@@ -9,6 +9,15 @@
 
 #include "libOTe/Base/BaseOT.h"
 #include "libOTe/Base/MasnyRindal.h"
+/*
+#include <fss-common.h>
+#include <fss-client.h>
+#include <fss-server.h>
+*/
+#include "frontend/fss/fss-common.h"
+#include "frontend/fss/fss-server.h"
+#include "frontend/fss/fss-client.h"
+
 
 using namespace osuCrypto; 
 
