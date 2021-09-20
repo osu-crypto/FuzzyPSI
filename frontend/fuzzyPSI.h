@@ -18,6 +18,8 @@
 #include "frontend/fss/fss-server.h"
 #include "frontend/fss/fss-client.h"
 
+#include "frontend/libPaXoS/ObliviousDictionary.h"
+
 
 using namespace osuCrypto; 
 
