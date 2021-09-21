@@ -14,10 +14,7 @@
 #include <fss-client.h>
 #include <fss-server.h>
 */
-#include "frontend/fss/fss-common.h"
-#include "frontend/fss/fss-server.h"
-#include "frontend/fss/fss-client.h"
-
+#include "fss.h"
 #include "frontend/libPaXoS/ObliviousDictionary.h"
 
 
