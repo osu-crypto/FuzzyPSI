@@ -3,28 +3,44 @@
 using namespace osuCrypto;
 //using namespace cryptoTools;
 
-/*
-void test_paxos() {
-	int v = 1; 
-	int hashSize = 5;
-    int fieldSize = 1;
-    int gamma = 60;
-    double c1 = 1.0;
-    // Initialize
-    OBD3Tables* dic = new OBD3tables(hashSize, fieldSize, c1, gamma, v);
-    vector<uint64_t> keys{1,2,3,4,5};
-    vector<byte> values{'a','b','c','d', 'e'};
-    dic->encode();
-    unsigned char ch = disc->decode(3);
-    std::cout<<"3rd character: "<<ch;
-}
+void fss_interval3(uint64_t a, uint64_t b){
+    uint64_t lboundary = a;
+    uint64_t rboundary = b;
+    uint64_t l_lt_ans0, l_lt_ans1, l_lt_fin, r_lt_ans0, r_lt_ans1, r_lt_fin;
+    Fss l_fClient, l_fServer, r_fClient, r_fServer;
 
-*/
+    ServerKeyLt l_lt_k0;
+    ServerKeyLt l_lt_k1;
+    ServerKeyLt r_lt_k0;
+    ServerKeyLt r_lt_k1;
+
+    
+    // Client does the key generation for the FSS
+
+    // left interval (a, -1), x < a then - 1, x >= a then 0 
+    common_test();
+    initializeClient(&l_fClient, 64, 2);
+    generateTreeLt(&l_fClient, &r_lt_k0, &r_lt_k1, b, 1);
+
+
+    block* struct_in_blk = reinterpret_cast<block *>(&r_lt_k1); 
+    vector<block> struct_in_blocks;
+    for (int i = 0; i < 11; i++){
+        std::cout << "blocks in struct " << struct_in_blk[i] << std::endl; 
+        struct_in_blocks.push_back(struct_in_blk[i]);
+    }
+    ServerKeyLt * original_struct = reinterpret_cast<ServerKeyLt*>(struct_in_blocks.data());
+    l_lt_ans0 = evaluateLt(&l_fClient, &r_lt_k1, (a+1));
+    r_lt_ans0 = evaluateLt(&l_fClient, &r_lt_k0, (a+1));
+    l_lt_ans1 = evaluateLt(&l_fClient, original_struct, (a+1));
+
+    std::cout << l_lt_ans0 << "   " << r_lt_ans0 << "   " << l_lt_ans1 << std::endl; 
+}
 
 void fuzzyPSI(u64 keysize)
 {
     //space to test out dependencies
-    //fss_interval(1, 10);
+    fss_interval3(1, 10);
 
     // Setup networking. Setting up channels for PSI, sender and recver according to OT not PSI 
     IOService ios;
@@ -33,10 +49,11 @@ void fuzzyPSI(u64 keysize)
 
     // key length = # of blocks needed to represent the FSS keys
     // determine this according to the FSS function we calling PSI on
-    u64 fsskeySize =  keysize; 
+    // for a single interval the **keysize is 11**
+    u64 fsskeySize =  11; 
 
     // The number of OTs - we need \kappa OTs
-    int baseCount = 1; // for  BFSS - baseCount = hamming distance
+    int baseCount = 2; // for  BFSS - baseCount = hamming distance
     
 
     // **PSI receiver** has 128 choices and OT received blocks 
@@ -85,16 +102,6 @@ void fuzzyPSI(u64 keysize)
                         fsskeysRecv.push_back(recv_ciphertxt);
                 }
             }
-        // delete below 
-        for (int i = 0; i < recv_ciphertxt0.size(); i++)
-            std::cout << "recv side cipher0 " << i << "   " << recv_ciphertxt0[i] << std::endl; 
-
-        for (int i = 0; i < recv_ciphertxt1.size(); i++)
-            std::cout << "recv side cipher1 " << i << "   " << recv_ciphertxt1[i] << std::endl; 
-
-        for (int i = 0; i < fsskeysRecv.size(); i++)
-            std::cout << "recv side fsskeys " << i << "   " << fsskeysRecv[i] << std::endl; 
-
 
         // hash each of the received keys with the appropriate inputs
        
@@ -130,10 +137,8 @@ void fuzzyPSI(u64 keysize)
         aeskey0.setKey(baseSend[i][0]);
         aeskey1.setKey(baseSend[i][1]);
         for (int j = 0; j < fsskeySize; j++){
-            std::cout << "sender: fss key (i, j) " << fsskeys[(i*fsskeySize) + j][0] << " " << fsskeys[(i*fsskeySize) + j][1] << std::endl; 
             aeskey0.ecbEncBlock(fsskeys[(i*fsskeySize) + j][0], ciphertxt0);
-            aeskey1.ecbEncBlock(fsskeys[(i*fsskeySize) + j][1], ciphertxt1);
-            std::cout << "sender: fss cipher (i, j) " << ciphertxt0 << " " << ciphertxt1 << std::endl; 
+            aeskey1.ecbEncBlock(fsskeys[(i*fsskeySize) + j][1], ciphertxt1); 
             keys_ciphertxt0.push_back(ciphertxt0);
             keys_ciphertxt1.push_back(ciphertxt1);
             
