@@ -122,7 +122,7 @@ int main(int argc, char** argv)
     if (cmd.isSet("f"))
     {
         std::cout << "Let's do fuzzy PSI " << std::endl; 
-        fuzzyPSI(3);
+        fuzzyPSI(11, 2000, 10000000);
         //flagSet |= runIf(baseOT_example<MasnyRindal>, cmd, f);
         //LdpcDecode_impulse(cmd);
         return 0;

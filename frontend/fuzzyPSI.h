@@ -7,6 +7,7 @@
 #include <cryptoTools/Crypto/AES.h>
 #include <cryptoTools/Crypto/PRNG.h>
 
+#include<algorithm>
 #include "libOTe/Base/BaseOT.h"
 #include "libOTe/Base/MasnyRindal.h"
 /*
@@ -22,4 +23,5 @@ using namespace osuCrypto;
 
 
 
-void fuzzyPSI(u64 keysize); 
+void fuzzyPSI(u64 keysize, u64 y_size, u64 x_volume); 
+void fuzzyPSI_int(u64 keysize); 
