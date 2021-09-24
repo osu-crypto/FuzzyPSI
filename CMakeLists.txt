@@ -66,6 +66,7 @@ endif()
 add_subdirectory(cryptoTools)
 
 
+
 #############################################
 #                CONFIGURE                  #
 #############################################
@@ -90,6 +91,7 @@ endif()
 
 add_subdirectory(libOTe)
 add_subdirectory(libOTe_Tests)
+
 
 #############################################
 #              Build Frontend               #
