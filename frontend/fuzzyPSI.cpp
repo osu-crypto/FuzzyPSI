@@ -1,4 +1,5 @@
 #include "fuzzyPSI.h"
+#include "paxos.h"
 
 using namespace osuCrypto;
 //using namespace cryptoTools;
@@ -30,7 +31,44 @@ array<vector<block>, 2> s_psi_interval(Fss* f_sender, int n, uint64_t a, uint64_
 
     
 }*/
+void PaxosEncode(const std::vector<block> setKeys, const std::vector<block> setValues, std::vector<block>& okvs, uint64_t fieldSize)
+{
+    int hashSize=setKeys.size(), gamma = 60, v=20;
+    double c1 = 2.4;
+    vector<uint64_t> keys;
+//    vector<unsigned char> values;
+    keys.resize(hashSize);
+    //okvs.resize(c1*hashSize);
+    int fieldSizeBytes = fieldSize % 8 == 0 ? fieldSize/8 : fieldSize/8 + 1;
+    int zeroBits = 8 - fieldSize % 8;
+//    values.resize(hashSize*fieldSizeBytes);
+    ObliviousDictionary * dic = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
+    dic->init();
+    for (int i=0; i < setKeys.size(); i++){
+        keys[i] = XXH64(&setKeys[i], 64, 0);
+    }
+    cout << "Done with keys" << endl;
+    vector<byte> values;
+    values.resize(setValues.size() * sizeof(block));
+    memcpy(values.data(), setValues.data(), setValues.size() * sizeof(block));
 
+    cout << "Copied vals" << endl;
+    cout << "printting the keys, values size " << keys.size() << "    " << values.size() << std::endl;
+    dic->setKeysAndVals(keys, values);
+    dic->encode();
+
+    //vector<byte> x = dic->getVariables();
+    //memcpy(okvs, x.data(), x.size());
+    //cout << "printting the okvs size " << okvs.size() << std::endl;
+    dic->checkOutput();
+    cout << "here" << endl;
+
+}
+
+void PaxosDecode(const std::vector<block> paxosMat, const std::vector<block> setKeys, std::vector<block>& setValues)
+{
+    cout << "Decode" << endl;
+}
 void fss_interval3(uint64_t a, uint64_t b){
     uint64_t lboundary = a;
     uint64_t rboundary = b;
@@ -77,6 +115,13 @@ void fuzzyPSI(u64 keysize, u64 y_input_size, u64 x_volume)
 {
     //space to test out dependencies
     common_test();
+    PRNG pprng(toBlock(123));
+    vector<block> okvskeys(65536), okvsvals(65536), okvs;
+    pprng.get(okvskeys.data(), okvskeys.size());
+    pprng.get(okvsvals.data(), okvsvals.size());
+    uint64_t fieldsize = 65;
+    PaxosEncode(okvskeys, okvsvals, okvs, fieldsize);
+    //test_paxos();
     //myfunc(toBlock(14), toBlock(15));
 
     // Setup networking. Setting up channels for PSI, sender and recver according to OT not PSI 
