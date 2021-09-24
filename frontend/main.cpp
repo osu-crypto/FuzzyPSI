@@ -119,12 +119,12 @@ int main(int argc, char** argv)
         return 0;
     }
 
+    // add calls here to test the fuzzyPSI code 
     if (cmd.isSet("f"))
     {
         std::cout << "Let's do fuzzy PSI " << std::endl; 
-        fuzzyPSI(11, 2000, 10000000);
-        //flagSet |= runIf(baseOT_example<MasnyRindal>, cmd, f);
-        //LdpcDecode_impulse(cmd);
+        //fuzzyPSI(11, 2000, 10000000);
+        fuzzyPSI(11, 20, 100);        
         return 0;
     }
 
