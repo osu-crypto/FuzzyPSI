@@ -137,9 +137,9 @@ int main(int argc, char** argv)
         PaxosEncode(okvskeys, okvsvals, okvs, fieldsize);  
 
         //here we are testing a basic share FSS for far apart 
-        cout << "OKVS FSS " << std::endl;
-        uint64_t delta = 20;
-        ShareFss_farapart(delta, 1);      
+        //cout << "OKVS FSS " << std::endl;
+        //uint64_t delta = 20;
+        //ShareFss_farapart(delta, 1);      
         return 0;
     }
 
