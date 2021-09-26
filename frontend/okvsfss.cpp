@@ -2,8 +2,24 @@
 
 using namespace osuCrypto;
 
+/* How we write a square and identify the grid cells
+    1. Grid cell label is bottom left co-coordinate
+    2. We can identify a square also by bottom left coord
+
+    Note: each square is processed independent of the other
+    this allows us to sample the input squares systematically
+    For now, we will assume that all the squares are in a straight line
+
+    How to generate input squares
+    1. Sample the bottom left square/center of the square
+    2. Sample the side length = 2 * delta
+    3. First square Bottomleftlabel - (delta, delta)
+    4. To get next square add (2*delta) along the the x-axis
+*/
+
 void PaxosEncode(const std::vector<block> setKeys, const std::vector<block> setValues, std::vector<block>& okvs, uint64_t fieldSize)
 {
+    GF2E dhBitsVal;
     int hashSize=setKeys.size(), gamma = 60, v=20;
     double c1 = 2.4;
     vector<uint64_t> keys;
@@ -29,7 +45,9 @@ void PaxosEncode(const std::vector<block> setKeys, const std::vector<block> setV
     dic->encode();
 
     vector<byte> x = dic->getVariables();
-    std::cout << "field size bytes " << fieldSizeBytes << std::endl;
+    //std::cout << "field size bytes " << fieldSizeBytes << std::endl;
+
+    // vector of bytes to block 
     vector<block> Okvs;
     Okvs.resize(x.size() / fieldSizeBytes);
     memcpy(Okvs.data(), x.data(), x.size());
@@ -37,7 +55,47 @@ void PaxosEncode(const std::vector<block> setKeys, const std::vector<block> setV
     for (int i = 0; i < (Okvs.size() - 50); i++)
         std::cout << "okvs  " << i << "  " << Okvs[i] << std::endl;
     dic->checkOutput();
-    cout << "here" << endl;
+    cout << "test decode below" << endl;
+
+    // converting block to bytes
+    vector<byte> okvs_bytes;
+    okvs_bytes.resize(Okvs.size() * sizeof(block));
+    memcpy(okvs_bytes.data(), Okvs.data(), Okvs.size() * sizeof(block));
+
+    // from bytes to GF2E!! yahooo 
+    GF2EVector okvs_gf2e(Okvs.size());
+    GF2X temp;
+    for (int i=0; i < okvs_gf2e.size(); i++){
+        GF2XFromBytes(temp, okvs_bytes.data() + i*fieldSizeBytes ,fieldSizeBytes);
+        okvs_gf2e[i] = to_GF2E(temp); 
+        //std::cout << okvs_gf2e[i] << std::endl;
+    }
+    
+    // decoding a single key
+    std::cout << "setKey[4] " << setKeys[4] << std::endl;
+
+    // decoding from checkoutput()
+    GF2E dhBitsVals;
+    auto indices = dic->dec(keys[5]);
+    for (int j=0; j<indices.size(); j++){
+        dhBitsVals += okvs_gf2e[indices[j]];
+    }
+    //std::cout << "dhBitsVals  " << dhBitsVals << std::endl;
+    vector<byte> valBytes(fieldSizeBytes);
+    BytesFromGF2X(valBytes.data(), rep(dhBitsVals), fieldSizeBytes);
+    block returndecode(valBytes[15],valBytes[14],valBytes[13],valBytes[12],valBytes[11],valBytes[10],valBytes[9],valBytes[8],valBytes[7],valBytes[6],valBytes[5],valBytes[4],valBytes[3],valBytes[2],valBytes[1],valBytes[0]);
+    std::cout << "setVals[4] " << setValues[5] << "return " << returndecode << std::endl;
+
+    //if ((variables[indices[0]] + variables[indices[1]] +  variables[indices[2]] + dhBitsVal) == val) {
+    //    }
+} 
+
+void OKVSDecode(vector<block> okvs, block key){
+    cout << "Let's write decode " << std::endl;
+    // 1. convert block key -> to unint64_t keys using xxH64
+    // nothing changes in setKeysandValues()
+
+    // 2. 
 }
 
 vector<uint64_t> return_grid(vector<uint64_t> coords, uint64_t delta){
@@ -113,19 +171,7 @@ vector<block> d_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uin
     return fss_shares;
 }
 
-/* How we write a square and identify the grid cells
-    1. Grid cell label is bottom left co-coordinate
-    2. We can identify a square also by bottom left coo
 
-    Note: each square is processed independent of the other
-    this allows us to sample the input squares systematically
-    For now, we will assume that all the squares are in a straight line
-
-    How to generate input squares
-    1. Sample the bottom left square/center of the square
-    2. Sample the side length = 2 * delta
-    3. First square Bottomleftlabel - (delta, delta)
-*/
 void ShareFss_farapart(uint64_t delta, int nSquares){
     std::cout << "balls are pairwise 3*delta apart " << std::endl;
     PRNG mprng(toBlock(31));
@@ -145,6 +191,9 @@ void ShareFss_farapart(uint64_t delta, int nSquares){
     std:: cout << "printing trivial FSS for square  " << (share0 ^ share1) << std::endl;
 
 }
+
+
+
 
 /* useful notes
     PRNG mprng(toBlock(31));

@@ -10,7 +10,13 @@
 #include <cryptoTools/Common/BitVector.h>
 #include <string>
 
+//for OKVSDecode
+#include <NTL/mat_GF2E.h>
+#include <NTL/GF2E.h>
+#include <NTL/GF2X.h>
+#include <NTL/GF2XFactoring.h>
 
 
+void OKVSDecode(vector<osuCrypto::block> okvs, osuCrypto::block key);
 void PaxosEncode(const std::vector<osuCrypto::block> setKeys, const std::vector<osuCrypto::block> setValues, std::vector<osuCrypto::block>& okvs, uint64_t fieldSize);
 void ShareFss_farapart(uint64_t delta, int nSquares);
