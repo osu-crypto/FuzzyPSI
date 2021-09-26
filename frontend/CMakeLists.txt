@@ -12,15 +12,16 @@ add_executable(frontend_libOTe  ${SRCS})
 
 # default location for NTL
 set(NTL_Dirs "${CMAKE_SOURCE_DIR}/thirdparty/linux/ntl/")
-include_directories("${NTL_Dirs}/include/")
-link_directories("${NTL_Dirs}/src/")
+include_directories("${NTL_Dirs}include/")
+link_directories("${NTL_Dirs}src/")
 
 #NTL
-set(NTL_Lib_Dirs "${NTL_Dirs}/src/")
-set(NTL_Include_Dirs "${NTL_Dirs}/include/")
+set(NTL_Lib_Dirs "${NTL_Dirs}src/")
+set(NTL_Include_Dirs "${NTL_Dirs}include/")
 set(NTL_LIB "${NTL_Lib_Dirs}libntl.a")
 if(NOT EXISTS "${NTL_LIB}")
 	# we failed to find it, try using find_library
+	message(${NTL_Lib_Dirs})
 	find_library(
 			NTL_LIB
 			NAMES ntl
@@ -38,6 +39,6 @@ endif()
 
 
 find_package(xxHash CONFIG REQUIRED)
-
+message(${NTL_LIB})
 target_link_libraries(frontend_libOTe PRIVATE xxHash::xxhash libOTe_Tests tests_cryptoTools crypto.a dl ssl gmpxx gmp pthread ${NTL_LIB} linbox iml boost_system blas givaro gomp)
 

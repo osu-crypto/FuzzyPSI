@@ -27,6 +27,7 @@ using namespace osuCrypto;
 #include "libOTe/Tools/LDPC/LdpcImpulseDist.h"
 
 #include "fuzzyPSI.h"
+#include "okvsfss.h"
 
 static const std::vector<std::string>
 f{"f", "fuzzyPSI"},
@@ -124,7 +125,21 @@ int main(int argc, char** argv)
     {
         std::cout << "Let's do fuzzy PSI " << std::endl; 
         //fuzzyPSI(11, 2000, 10000000);
-        fuzzyPSI(11, 20, 100);        
+        fuzzyPSI(11, 20, 100);
+
+        //here we are testing a basic okvs call 
+        cout << "Let's do OKVS " << std::endl;
+        PRNG pprng(toBlock(123));
+        vector<block> okvskeys(25), okvsvals(25), okvs;
+        pprng.get(okvskeys.data(), okvskeys.size());
+        pprng.get(okvsvals.data(), okvsvals.size());
+        uint64_t fieldsize = 128;
+        PaxosEncode(okvskeys, okvsvals, okvs, fieldsize);  
+
+        //here we are testing a basic share FSS for far apart 
+        cout << "OKVS FSS " << std::endl;
+        uint64_t delta = 20;
+        ShareFss_farapart(delta, 1);      
         return 0;
     }
 

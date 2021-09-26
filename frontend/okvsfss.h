@@ -6,22 +6,11 @@
 #include <cryptoTools/Common/Timer.h>
 #include <cryptoTools/Crypto/AES.h>
 #include <cryptoTools/Crypto/PRNG.h>
-
-#include <algorithm>
-#include "libOTe/Base/BaseOT.h"
-#include "libOTe/Base/MasnyRindal.h"
-/*
-#include <fss-common.h>
-#include <fss-client.h>
-#include <fss-server.h>
-*/
-#include "fss.h"
 #include "frontend/libPaXoS/ObliviousDictionary.h"
+#include <cryptoTools/Common/BitVector.h>
+#include <string>
 
 
-using namespace osuCrypto; 
 
-
-
-void fuzzyPSI(u64 keysize, u64 y_size, u64 x_volume); 
-void fuzzyPSI_int(u64 keysize); 
+void PaxosEncode(const std::vector<osuCrypto::block> setKeys, const std::vector<osuCrypto::block> setValues, std::vector<osuCrypto::block>& okvs, uint64_t fieldSize);
+void ShareFss_farapart(uint64_t delta, int nSquares);
