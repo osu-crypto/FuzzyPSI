@@ -123,7 +123,6 @@ vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y,
     grid_y = grid_y * (2 * delta);
     uint64_t int_start = 64 - (2 * delta);
  
-
     //Let's process the X-coord which is the second half of the block, access block.mData[0]
     // in a block(y, x)
     if (x) { // fill right
@@ -140,10 +139,8 @@ vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y,
         if(FSS_keyone[64 + i])
             FSS_keyone[64 + i] = 0;
         else 
-            FSS_keyone[64 + i] = 1;
-        
+            FSS_keyone[64 + i] = 1;   
     }
-
     if (y) { // fill top
     uint64_t start_point_y = int_start + (point_y - grid_y); 
     for (int i = start_point_y; i < 64; i++)
@@ -264,7 +261,7 @@ void far_apart_FssShare(uint64_t delta, int nSquares, vector<block> &okvs0, vect
 
     // OKVS (keys, values = fsskeys0) || (keys, values = fsskeys1)
     PaxosEncode(okvsKeys, okvsVal0, okvsVal1, okvs0, okvs1, 128);
-    std::cout << "key okvsVals0[0] " << okvsKeys[2] << "  " << okvsVal1[2] << std::endl;
+    std::cout << "key okvsVals0[0] " << okvsKeys[3] << "  " << okvsVal1[3] << std::endl;
 }
    
 void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, uint64_t delta, uint64_t hashSize){
@@ -301,7 +298,7 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, u
         okvs_gf2e[i] = to_GF2E(temp); 
         
     }
-    std::cout << okvs[0] << std::endl;
+    
     // decoding from checkoutput()
 
     //initialize just to be able to dec() -- below 3 calls only set up the hash functions
@@ -319,8 +316,20 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, u
     vector<byte> valBytes(fieldSizeBytes);
     BytesFromGF2X(valBytes.data(), rep(dhBitsVals), fieldSizeBytes);
     block returndecode(valBytes[15],valBytes[14],valBytes[13],valBytes[12],valBytes[11],valBytes[10],valBytes[9],valBytes[8],valBytes[7],valBytes[6],valBytes[5],valBytes[4],valBytes[3],valBytes[2],valBytes[1],valBytes[0]);
-    std::cout <<  "return block from okvs " << returndecode << std::endl;
+    //std::cout <<  "return block from okvs " << returndecode << std::endl;
 
+    // UGH, below stuff somehow works out, phew
+    int int_start_y = 63 - (2 * delta);
+    int int_start_x = 64 + int_start_y;
+    grd_y = grd_y * 2 * delta;
+    grd_x = grd_x * 2 * delta; 
+    BitVector val_in_bits;
+    val_in_bits.assign(returndecode); 
+    std::cout << "blk " << returndecode << std::endl;
+    //std::cout << "x, y " << " " << int_start_x << " " << int_start_y << std::endl;
+    //std::cout << "x, y " << " " << (x - grd_x) << " " << (y - grd_y) << std::endl;
+    std::cout << "y share " << val_in_bits[int_start_y + (y - grd_y)] << std::endl;
+    std::cout << "x share " << val_in_bits[int_start_x + (x - grd_x)] << std::endl;
 }
    
    

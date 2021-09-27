@@ -144,14 +144,10 @@ int main(int argc, char** argv)
         uint64_t nkeys = nsquares * 4;
         vector<block> okvs_fsskey0, okvs_fsskey1;
         far_apart_FssShare(delta, 5, okvs_fsskey0, okvs_fsskey1); 
-        std::cout << "return okvs " << okvs_fsskey0[0] << std::endl; 
-        far_apart_FssEval(30, 10, okvs_fsskey1, delta, nkeys); 
-
-        uint64_t a = 1;
-        a = a << 32;
-        a = a + 1;
-        std::cout << "a  " << toBlock(0,a) << std::endl;   
-
+        //std::cout << "return okvs " << okvs_fsskey0[0] << std::endl; 
+        far_apart_FssEval(25, 25, okvs_fsskey1, delta, nkeys); 
+        far_apart_FssEval(27, 29, okvs_fsskey0, delta, nkeys); 
+       
         return 0;
     }
 
