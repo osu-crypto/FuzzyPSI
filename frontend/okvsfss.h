@@ -17,6 +17,6 @@
 #include <NTL/GF2XFactoring.h>
 
 void OKVSDecode(vector<osuCrypto::block> okvs, osuCrypto::block key);
-void PaxosEncode(const std::vector<osuCrypto::block> setKeys, const std::vector<osuCrypto::block> setValues0, const std::vector<osuCrypto::block> setValues1, std::vector<osuCrypto::block>& okvs0, std::vector<osuCrypto::block>& okvs1, uint64_t fieldSize);
+void PaxosEncode(const std::vector<uint64_t> setKeys, const std::vector<osuCrypto::block> setValues0, const std::vector<osuCrypto::block> setValues1, std::vector<osuCrypto::block>& okvs0, std::vector<osuCrypto::block>& okvs1, uint64_t fieldSize);
 void far_apart_FssShare(uint64_t delta, int nSquares, std::vector<osuCrypto::block>& okvs0, std::vector<osuCrypto::block>& okvs1);
 void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<osuCrypto::block> okvs, uint64_t delta, uint64_t hashSize);
