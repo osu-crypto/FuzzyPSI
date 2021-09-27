@@ -28,6 +28,7 @@ using namespace osuCrypto;
 
 #include "fuzzyPSI.h"
 #include "okvsfss.h"
+#include "frontend/libPaXoS/ObliviousDictionary.h"
 
 static const std::vector<std::string>
 f{"f", "fuzzyPSI"},
@@ -128,18 +129,29 @@ int main(int argc, char** argv)
         fuzzyPSI(11, 20, 100);
 
         //here we are testing a basic okvs call 
-        cout << "Let's do OKVS " << std::endl;
+        /*cout << "Let's do OKVS " << std::endl;
         PRNG pprng(toBlock(123));
         vector<block> okvskeys(25), okvsvals(25), okvs;
         pprng.get(okvskeys.data(), okvskeys.size());
         pprng.get(okvsvals.data(), okvsvals.size());
         uint64_t fieldsize = 128;
-        PaxosEncode(okvskeys, okvsvals, okvs, fieldsize);  
+        PaxosEncode(okvskeys, okvsvals, okvs, fieldsize);  */
 
         //here we are testing a basic share FSS for far apart 
-        //cout << "OKVS FSS " << std::endl;
-        //uint64_t delta = 20;
-        //ShareFss_farapart(delta, 1);      
+        cout << "OKVS FSS " << std::endl;
+        uint64_t delta = 10;
+        uint64_t nsquares = 5;
+        uint64_t nkeys = nsquares * 4;
+        vector<block> okvs_fsskey0, okvs_fsskey1;
+        far_apart_FssShare(delta, 5, okvs_fsskey0, okvs_fsskey1); 
+        std::cout << "return okvs " << okvs_fsskey0[0] << std::endl; 
+        far_apart_FssEval(10, 10, okvs_fsskey0, delta, nkeys); 
+
+        uint64_t a = 1;
+        a = a << 32;
+        a = a + 1;
+        std::cout << "a  " << toBlock(0,a) << std::endl;   
+
         return 0;
     }
 

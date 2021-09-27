@@ -17,47 +17,69 @@ using namespace osuCrypto;
     4. To get next square add (2*delta) along the the x-axis
 */
 
-void PaxosEncode(const std::vector<block> setKeys, const std::vector<block> setValues, std::vector<block>& okvs, uint64_t fieldSize)
+void return_grid(uint64_t x, uint64_t y, uint64_t &grd_x, uint64_t &grd_y, uint64_t sqrlen){
+        grd_x = x / sqrlen;
+        grd_y = y / sqrlen;
+}
+
+void PaxosEncode(const std::vector<block> setKeys, const std::vector<block> setValues0, const std::vector<block> setValues1, std::vector<block>& okvs0, std::vector<block>& okvs1, uint64_t fieldSize)
 {
     GF2E dhBitsVal;
     int hashSize=setKeys.size(), gamma = 60, v=20;
     double c1 = 2.4;
     vector<uint64_t> keys;
-//    vector<unsigned char> values;
     keys.resize(hashSize);
-    //okvs.resize(c1*hashSize);
     int fieldSizeBytes = fieldSize % 8 == 0 ? fieldSize/8 : fieldSize/8 + 1;
     int zeroBits = 8 - fieldSize % 8;
-//    values.resize(hashSize*fieldSizeBytes);
-    ObliviousDictionary * dic = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
-    dic->init();
+
+    //initialize 
+    ObliviousDictionary * dict0 = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
+    ObliviousDictionary * dict1 = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
+    dict0->init();
+    dict1->init();
+
+    // hashing keys
     for (int i=0; i < setKeys.size(); i++){
         keys[i] = XXH64(&setKeys[i], 64, 0);
     }
-    cout << "Done with keys" << endl;
-    vector<byte> values;
-    values.resize(setValues.size() * sizeof(block));
-    memcpy(values.data(), setValues.data(), setValues.size() * sizeof(block));
-    cout << "setValue size " << setValues.size() << std::endl;
-   // cout << "block size " << sizeof(block) << "  fieldSize " << fieldSizeBytes << std::endl;
-    cout << "printting the keys, values size " << keys.size() << "    " << values.size() << std::endl;
-    dic->setKeysAndVals(keys, values);
-    dic->encode();
 
-    vector<byte> x = dic->getVariables();
-    //std::cout << "field size bytes " << fieldSizeBytes << std::endl;
+    vector<byte> values0, values1;
+    values0.resize(setValues0.size() * sizeof(block));
+    values1.resize(setValues1.size() * sizeof(block));
+    memcpy(values0.data(), setValues0.data(), setValues0.size() * sizeof(block));
+    memcpy(values1.data(), setValues1.data(), setValues1.size() * sizeof(block));
+    
+    dict0->setKeysAndVals(keys, values0);
+    dict1->setKeysAndVals(keys, values1);
+    dict0->encode();
+    dict1->encode();
 
-    // vector of bytes to block 
-    vector<block> Okvs;
-    Okvs.resize(x.size() / fieldSizeBytes);
-    memcpy(Okvs.data(), x.data(), x.size());
-    std::cout << "Okvs.size() " << Okvs.size() << std::endl;
+    vector<byte> x0 = dict0->getVariables();
+    vector<byte> x1 = dict1->getVariables();
+    
+    // vector of **bytes to block** , vector<block> Okvs;
+    okvs0.resize(x0.size() / fieldSizeBytes);
+    okvs1.resize(x1.size() / fieldSizeBytes);
+    memcpy(okvs0.data(), x0.data(), x0.size());
+    memcpy(okvs1.data(), x1.data(), x1.size());
+    /*std::cout << "Okvs.size() " << Okvs.size() << std::endl;
     for (int i = 0; i < (Okvs.size() - 50); i++)
-        std::cout << "okvs  " << i << "  " << Okvs[i] << std::endl;
-    dic->checkOutput();
-    cout << "test decode below" << endl;
+        std::cout << "okvs  " << i << "  " << Okvs[i] << std::endl;*/
+    
+    //below is function call to check output!!
+    dict0->checkOutput();
+    dict1->checkOutput();
+    
+    auto indices = dict0->dec(keys[0]);
+    cout << "ENCODE " << setKeys[0] << " " << keys[0] << " " << indices[0] << " " << indices[1] << std::endl;
+   
+} 
 
-    // converting block to bytes
+/*void OKVSDecode(vector<block> okvs, block key){
+    cout << "Let's write decode " << std::endl;
+    // 1. convert block key -> to unint64_t keys using xxH64
+    // nothing changes in setKeysandValues()
+  // converting block to bytes
     vector<byte> okvs_bytes;
     okvs_bytes.resize(Okvs.size() * sizeof(block));
     memcpy(okvs_bytes.data(), Okvs.data(), Okvs.size() * sizeof(block));
@@ -86,31 +108,12 @@ void PaxosEncode(const std::vector<block> setKeys, const std::vector<block> setV
     block returndecode(valBytes[15],valBytes[14],valBytes[13],valBytes[12],valBytes[11],valBytes[10],valBytes[9],valBytes[8],valBytes[7],valBytes[6],valBytes[5],valBytes[4],valBytes[3],valBytes[2],valBytes[1],valBytes[0]);
     std::cout << "setVals[4] " << setValues[5] << "return " << returndecode << std::endl;
 
-    //if ((variables[indices[0]] + variables[indices[1]] +  variables[indices[2]] + dhBitsVal) == val) {
-    //    }
-} 
-
-void OKVSDecode(vector<block> okvs, block key){
-    cout << "Let's write decode " << std::endl;
-    // 1. convert block key -> to unint64_t keys using xxH64
-    // nothing changes in setKeysandValues()
-
     // 2. 
-}
+}*/
 
-vector<uint64_t> return_grid(vector<uint64_t> coords, uint64_t delta){
-    vector<uint64_t> grid_id;
-    uint64_t temp;
-    for (int i = 0; i < coords.size(); i++){
-        temp = coords[i] / delta;
-        grid_id.push_back(temp);
-    }
-    
-    return grid_id;
-}
 
-vector<block> d_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uint64_t point_x, bool x, uint64_t point_y, bool y, block rand){
-    std::cout << "Let's write the trivial FSS in 2 Dimensions " << std::endl;
+vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uint64_t point_x, bool x, uint64_t point_y, bool y, block rand){
+    //std::cout << "Let's write the trivial FSS in 2 Dimensions " << std::endl;
     BitVector FSS_keyzero, FSS_keyone;
     FSS_keyzero.assign(rand);
     FSS_keyone.assign(rand);
@@ -122,7 +125,7 @@ vector<block> d_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uin
  
 
     //Let's process the X-coord which is the second half of the block, access block.mData[0]
-   
+    // in a block(y, x)
     if (x) { // fill right
     uint64_t start_point_x = int_start + (point_x - grid_x); 
     for (int i = start_point_x; i < 64; i++)
@@ -141,7 +144,7 @@ vector<block> d_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uin
         
     }
 
-    if (y) { // fill right
+    if (y) { // fill top
     uint64_t start_point_y = int_start + (point_y - grid_y); 
     for (int i = start_point_y; i < 64; i++)
         if(FSS_keyone[i])
@@ -149,7 +152,7 @@ vector<block> d_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uin
         else 
             FSS_keyone[i] = 1;
     }
-    else { // fill left 
+    else { // fill bottom
      uint64_t end_point_y = int_start + (point_y - grid_y); 
         for (int i = int_start; i < end_point_y; i++)
         if(FSS_keyone[i])
@@ -171,10 +174,132 @@ vector<block> d_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uin
     return fss_shares;
 }
 
+/*
+    This implementation assumes 2-dimensions
+*/
+void far_apart_FssShare(uint64_t delta, int nSquares, vector<block> &okvs0, vector<block> &okvs1){
 
-void ShareFss_farapart(uint64_t delta, int nSquares){
     std::cout << "balls are pairwise 3*delta apart " << std::endl;
+    //initialize variables
+    uint64_t len_sqr = 2 * delta;
+    vector<block> okvsKeys, okvsVal0, okvsVal1, shares; // vals0 - fsskeys0, vals1 - fsskeys1
+    uint64_t bl_x, bl_y, br_x, br_y, tl_x, tl_y, tr_x, tr_y, grd_bl_x, grd_bl_y, grd_br_x, grd_br_y, grd_tl_x, grd_tl_y, grd_tr_x, grd_tr_y;
+    block rand;
     PRNG mprng(toBlock(31));
+
+    // let's process the squares: identify the 2^dim = 4 grid cells -> compute fsskey0, fsskey1 
+    // Input: square1 (delta, delta), square2 (delta + 4*delta, delta) ..... square_n(delta + 4(n -1)delta, delta) ...
+    bl_x = delta;
+    bl_y = delta; 
+    for (int i = 0; i < nSquares; i++){
+        //BL 
+        bl_x = delta + (i*2*len_sqr);
+        bl_y = delta; // make bl_y = delta + (i*2*len_sqr)
+        return_grid(bl_x, bl_y, grd_bl_x, grd_bl_y, len_sqr);
+        rand = mprng.get();
+        shares = share_trivialFSS(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true, rand);
+        okvsVal0.push_back(shares[0]);
+        okvsVal1.push_back(shares[1]);
+        okvsKeys.push_back(toBlock(grd_bl_y, grd_bl_x));
+        //std::cout << "keys " << okvsKeys.back() << " " << okvsVal0.back()  << "  " << okvsVal1.back() << std::endl;
+        
+        //TL
+        tl_x = bl_x;
+        tl_y = bl_y + len_sqr;
+        return_grid(tl_x, tl_y, grd_tl_x, grd_tl_y, len_sqr);
+        rand = mprng.get();
+        shares = share_trivialFSS(delta, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false, rand);
+        okvsVal0.push_back(shares[0]);
+        okvsVal1.push_back(shares[1]);
+        okvsKeys.push_back(toBlock(grd_tl_y, grd_tl_x));
+        //std::cout << "keys " << okvsKeys.back() << " " << okvsVal0.back()  << "  " << okvsVal1.back() << std::endl;
+        
+        //BR
+        br_x = bl_x + len_sqr;
+        br_y = bl_y;
+        return_grid(br_x, br_y, grd_br_x, grd_br_y, len_sqr);
+        rand = mprng.get();
+        shares = share_trivialFSS(delta, grd_br_x, grd_br_y, br_x, false, br_y, true, rand);
+        okvsVal0.push_back(shares[0]);
+        okvsVal1.push_back(shares[1]);
+        okvsKeys.push_back(toBlock(grd_br_y, grd_br_x));
+        //std::cout << "keys " << okvsKeys.back() << " " << okvsVal0.back()  << "  " << okvsVal1.back() << std::endl;
+        //std::cout << "grd id " << grd_br_x << "  " << grd_br_y << std::endl;
+
+        //TR
+        tr_x = bl_x + len_sqr;
+        tr_y = bl_y + len_sqr;
+        return_grid(tr_x, tr_y, grd_tr_x, grd_tr_y, len_sqr);
+        rand = mprng.get();
+        shares = share_trivialFSS(delta, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false, rand);
+        okvsVal0.push_back(shares[0]);
+        okvsVal1.push_back(shares[1]);
+        okvsKeys.push_back(toBlock(grd_tr_y, grd_tr_x));
+        //std::cout << "keys " << okvsKeys.back() << " " << okvsVal0.back()  << "  " << okvsVal1.back() << std::endl;
+        //std::cout << "grd id " << grd_tr_x << "  " << grd_tr_y << std::endl;
+
+    }
+    //std::cout << "sizes " << okvsKeys.size() << "  " << okvsVal0.size()  << "  " << okvsVal1.size() << std::endl;
+
+    // OKVS (keys, values = fsskeys0) || (keys, values = fsskeys1)
+    PaxosEncode(okvsKeys, okvsVal0, okvsVal1, okvs0, okvs1, 128);
+    //std::cout << "key okvsVals0[0] " << okvsKeys[0] << "  " << okvsVal0[0] << std::endl;
+}
+   
+void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, uint64_t delta, uint64_t hashSize){
+    std::cout << "we are now evaluating the FSS, far apart " << std::endl;  
+    uint64_t len_sqr = 2* delta;
+    uint64_t grd_x, grd_y, x, y; 
+    int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
+    double c1 = 2.4; // for okvs
+
+    //handling the key
+    x = x_coord;
+    y = y_coord;
+    return_grid(x, y, grd_x, grd_y, len_sqr);
+    block okvskey(toBlock(grd_y, grd_x));
+    std::cout << "okvskey" << okvskey << std::endl;
+    uint64_t okvs_key = XXH64(&okvskey, 64, 0);
+
+    //handling okvs object 
+    // converting block to bytes
+    vector<byte> okvs_bytes;
+    okvs_bytes.resize(okvs.size() * sizeof(block));
+    memcpy(okvs_bytes.data(), okvs.data(), okvs.size() * sizeof(block));
+    // from bytes to GF2E!! yahooo 
+    GF2EVector okvs_gf2e(okvs.size());
+    GF2X temp;
+    for (int i=0; i < okvs_gf2e.size(); i++){
+        GF2XFromBytes(temp, okvs_bytes.data() + i*fieldSizeBytes ,fieldSizeBytes);
+        okvs_gf2e[i] = to_GF2E(temp); 
+        
+    }
+    std::cout << okvs[0] << std::endl;
+    // decoding from checkoutput()
+
+    //initialize just to be able to dec() -- below 3 calls only set up the hash functions
+    ObliviousDictionary * dict = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
+    dict->init();
+    auto indices = dict->dec(okvs_key);
+    cout << "ENCODE " << okvskey << " " << okvs_key << " " << indices[0] << " " << indices[1] << std::endl;
+    GF2E dhBitsVals;
+    for (int j=0; j<indices.size(); j++){
+        //std::cout << indices[j] << std::endl;
+        dhBitsVals += okvs_gf2e[indices[j]];
+    }
+    //std::cout << "dhBitsVals  " << dhBitsVals << std::endl;
+    // can generalize this later
+    vector<byte> valBytes(fieldSizeBytes);
+    BytesFromGF2X(valBytes.data(), rep(dhBitsVals), fieldSizeBytes);
+    block returndecode(valBytes[15],valBytes[14],valBytes[13],valBytes[12],valBytes[11],valBytes[10],valBytes[9],valBytes[8],valBytes[7],valBytes[6],valBytes[5],valBytes[4],valBytes[3],valBytes[2],valBytes[1],valBytes[0]);
+    std::cout <<  "return block from okvs " << returndecode << std::endl;
+
+}
+   
+   
+   
+    /*
+    
     block test = toBlock(14, 1000);
     vector<uint64_t> coord;
     uint64_t a = 12345;
@@ -189,8 +314,8 @@ void ShareFss_farapart(uint64_t delta, int nSquares){
     share0.assign(shares[0]);
     share1.assign(shares[1]);
     std:: cout << "printing trivial FSS for square  " << (share0 ^ share1) << std::endl;
+*/
 
-}
 
 
 
