@@ -55,7 +55,7 @@ bool OBDTables::encode(){
     auto t2 = high_resolution_clock::now();
 
     auto duration = duration_cast<milliseconds>(t2-t1).count();
-    cout << "fillTables took in milliseconds: " << duration << endl;
+    //cout << "fillTables took in milliseconds: " << duration << endl;
 
     t1 = high_resolution_clock::now();
     auto res = peeling();
@@ -63,14 +63,14 @@ bool OBDTables::encode(){
     t2 = high_resolution_clock::now();
 
     duration = duration_cast<milliseconds>(t2-t1).count();
-    cout << "peeling took in milliseconds: " << duration << endl;
+    //cout << "peeling took in milliseconds: " << duration << endl;
 
     t1 = high_resolution_clock::now();
     generateExternalToolValues();
     t2 = high_resolution_clock::now();
 
     duration = duration_cast<milliseconds>(t2-t1).count();
-    cout << "calc equations took in milliseconds: " << duration << endl;
+    //cout << "calc equations took in milliseconds: " << duration << endl;
 
     t1 = high_resolution_clock::now();
     unpeeling();
@@ -78,12 +78,12 @@ bool OBDTables::encode(){
     t2 = high_resolution_clock::now();
 
     duration = duration_cast<milliseconds>(t2 - t1).count();
-    cout << "unpeeling took in milliseconds: " << duration << endl;
+    //cout << "unpeeling took in milliseconds: " << duration << endl;
 
     auto end = high_resolution_clock::now();
 
     duration = duration_cast<milliseconds>(end - start).count();
-    cout << "encode took in milliseconds: " << duration << endl;
+    //cout << "encode took in milliseconds: " << duration << endl;
     return res;
 };
 

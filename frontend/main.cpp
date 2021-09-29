@@ -124,30 +124,67 @@ int main(int argc, char** argv)
     // add calls here to test the fuzzyPSI code 
     if (cmd.isSet("f"))
     {
-        std::cout << "Let's do fuzzy PSI " << std::endl; 
+        //std::cout << "Let's do fuzzy PSI " << std::endl; 
         //fuzzyPSI(11, 2000, 10000000);
-        fuzzyPSI(11, 20, 100);
+        //fuzzyPSI(11, 20, 100);
 
         //here we are testing a basic okvs call 
         /*cout << "Let's do OKVS " << std::endl;
         PRNG pprng(toBlock(123));
-        vector<block> okvskeys(25), okvsvals(25), okvs;
+        //vector<block> okvs; 
+        vector<uint64_t> okvskeys(25);
+        vector<array<block, 12>> okvsvals(25);
+        vector<array<block, 12>> okvs;
         pprng.get(okvskeys.data(), okvskeys.size());
         pprng.get(okvsvals.data(), okvsvals.size());
-        uint64_t fieldsize = 128;
-        PaxosEncode(okvskeys, okvsvals, okvs, fieldsize);  */
+        std::cout << okvsvals[0][0] << " " << okvsvals[0][1] << " " << okvsvals[0][11] << std::endl;
+        uint64_t fieldsize = 128*12;
+        auto t1 = high_resolution_clock::now();
+        OkvsEncode(okvskeys, okvsvals, okvs, fieldsize);  
+        auto t2 = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "OKVS encode + decode  " << duration << endl;
+        */
 
         //here we are testing a basic share FSS for far apart 
+        
         cout << "OKVS FSS " << std::endl;
         uint64_t delta = 10;
-        uint64_t nsquares = 5;
+        uint64_t nsquares = 20;
         uint64_t nkeys = nsquares * 4;
         vector<block> okvs_fsskey0, okvs_fsskey1;
-        far_apart_FssShare(delta, 5, okvs_fsskey0, okvs_fsskey1); 
-        //std::cout << "return okvs " << okvs_fsskey0[0] << std::endl; 
-        far_apart_FssEval(25, 25, okvs_fsskey1, delta, nkeys); 
-        far_apart_FssEval(27, 29, okvs_fsskey0, delta, nkeys); 
-       
+        far_apart_FssShare(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
+        /*
+        auto t1 = high_resolution_clock::now();
+        far_apart_FssEval(86, 25, okvs_fsskey1, delta, nkeys); 
+        auto t2 = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "FSS_Eval * 1M times took in milliseconds: " << duration << endl;
+        
+        far_apart_FssEval(96, 15, okvs_fsskey1, delta, nkeys); 
+        far_apart_FssEval(96, 15, okvs_fsskey0, delta, nkeys); 
+
+        
+        far_apart_FssEval(27, 24, okvs_fsskey0, delta, nkeys);
+        far_apart_FssEval(27, 24, okvs_fsskey1, delta, nkeys);
+
+
+        far_apart_FssEval(66, 25, okvs_fsskey0, delta, nkeys); 
+        far_apart_FssEval(66, 25, okvs_fsskey1, delta, nkeys); 
+
+        far_apart_FssEval(52, 24, okvs_fsskey0, delta, nkeys);
+        far_apart_FssEval(52, 24, okvs_fsskey1, delta, nkeys);
+
+        far_apart_FssEval(30, 22, okvs_fsskey1, delta, nkeys);
+        far_apart_FssEval(30, 22, okvs_fsskey0, delta, nkeys);
+        */
+        auto t1 = high_resolution_clock::now();
+        far_apart_FssEval(95, 29, okvs_fsskey0, delta, nkeys); 
+        auto t2 = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "FSS_Eval times took in milliseconds: " << duration << endl;
+        //far_apart_FssEval(95, 29, okvs_fsskey1, delta, nkeys); 
+        
         return 0;
     }
 
