@@ -396,9 +396,66 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, u
     BitIterator iter_x(valBytes.data(), int_start_x + (x - grd_x));
     y_share = *iter_y;
     x_share = *iter_x;
-    uint64_t
     //std::cout << "(y, x) " << int(y_share) << "  " << int(x_share) << std::endl;
     
+}
+
+
+void batchFssEval(vector<uint64_t> x_coord, vector<uint64_t> y_coord, vector<osuCrypto::block> okvs, uint64_t delta, uint64_t hashSize){
+    uint64_t len_sqr = 2* delta;
+    uint64_t grd_x, grd_y, x, y; 
+    int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
+    double c1 = 2.4; // for okvs
+    //vector<uint64_t> okvs_keys;
+    uint64_t okvs_key;
+
+    if (x_coord.size() != y_coord.size()){
+        std::cout << "inconsistent point set " << std::endl;
+    }
+    // decoding from checkoutput()
+    //initialize just to be able to dec() -- below 3 calls only set up the hash functions
+    ObliviousDictionary * dict = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
+    dict->init();
+     //handling okvs object 
+    // converting block to bytes
+    vector<byte> okvs_bytes;
+    okvs_bytes.resize(okvs.size() * sizeof(block));
+    memcpy(okvs_bytes.data(), okvs.data(), okvs.size() * sizeof(block));
+    // from bytes to GF2E!! yahooo 
+    GF2EVector okvs_gf2e(okvs.size());
+    GF2X temp;
+    for (int i=0; i < okvs_gf2e.size(); i++){
+        GF2XFromBytes(temp, okvs_bytes.data() + i*fieldSizeBytes ,fieldSizeBytes);
+        okvs_gf2e[i] = to_GF2E(temp);     
+    }
+
+    vector<byte> valBytes(fieldSizeBytes);
+    int int_start_y = 63 - (2 * delta);
+    int int_start_x = 64 + int_start_y;
+    u8 y_share, x_share;
+    GF2E dhBitsVals;
+
+     //handling the key
+    for (int i = 0; i < x_coord.size(); i++){
+        x = x_coord[i];
+        y = y_coord[i];
+        return_grid(x, y, grd_x, grd_y, len_sqr);
+        okvs_key = grd_y;
+        okvs_key = okvs_key << 32;
+        okvs_key = okvs_key + grd_x;
+        //okvs_keys.push_back(okvs_key);
+        auto indices = dict->dec(okvs_key);
+        for (int j=0; j<indices.size(); j++){
+            dhBitsVals += okvs_gf2e[indices[j]];
+        }
+        BytesFromGF2X(valBytes.data(), rep(dhBitsVals), fieldSizeBytes);
+        grd_y = grd_y * 2 * delta;
+        grd_x = grd_x * 2 * delta; 
+        BitIterator iter_y(valBytes.data(), int_start_y + (y - grd_y));
+        BitIterator iter_x(valBytes.data(), int_start_x + (x - grd_x));
+        y_share = *iter_y;
+        x_share = *iter_x;
+    }
 }
 
 /*
@@ -511,7 +568,7 @@ void FssShare_Enumerate(uint64_t delta, int nSquares, vector<vector<block>> &okv
     //testing SHA
     
 } 
-*/
+
 
 void OkvsEncode(std::vector<uint64_t> setKeys, const std::vector<array<osuCrypto::block, 2>> setValues0, std::vector<array<osuCrypto::block, 12>>& okvs0, uint64_t fieldSize)
 {

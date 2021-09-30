@@ -153,8 +153,7 @@ int main(int argc, char** argv)
         uint64_t nsquares = 10;
         uint64_t nkeys = nsquares * 4;
         vector<vector<block>> okvs_fsskey0, okvs_fsskey1;
-        //far_apart_FssShare(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
-        FssShare_Enumerate(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
+        far_apart_FssShare(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
         /*
         auto t1 = high_resolution_clock::now();
         far_apart_FssEval(86, 25, okvs_fsskey1, delta, nkeys); 
