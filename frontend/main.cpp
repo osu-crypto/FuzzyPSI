@@ -150,10 +150,11 @@ int main(int argc, char** argv)
         
         cout << "OKVS FSS " << std::endl;
         uint64_t delta = 10;
-        uint64_t nsquares = 20;
+        uint64_t nsquares = 10;
         uint64_t nkeys = nsquares * 4;
-        vector<block> okvs_fsskey0, okvs_fsskey1;
-        far_apart_FssShare(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
+        vector<vector<block>> okvs_fsskey0, okvs_fsskey1;
+        //far_apart_FssShare(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
+        FssShare_Enumerate(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
         /*
         auto t1 = high_resolution_clock::now();
         far_apart_FssEval(86, 25, okvs_fsskey1, delta, nkeys); 
@@ -177,14 +178,14 @@ int main(int argc, char** argv)
 
         far_apart_FssEval(30, 22, okvs_fsskey1, delta, nkeys);
         far_apart_FssEval(30, 22, okvs_fsskey0, delta, nkeys);
-        */
+        
         auto t1 = high_resolution_clock::now();
         far_apart_FssEval(95, 29, okvs_fsskey0, delta, nkeys); 
         auto t2 = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(t2-t1).count();
         cout << "FSS_Eval times took in milliseconds: " << duration << endl;
         //far_apart_FssEval(95, 29, okvs_fsskey1, delta, nkeys); 
-        
+        */
         return 0;
     }
 

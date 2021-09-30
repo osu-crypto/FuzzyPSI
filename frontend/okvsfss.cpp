@@ -26,7 +26,7 @@ void PaxosEncode(std::vector<uint64_t> setKeys, const std::vector<block> setValu
 {
     GF2E dhBitsVal;
     int hashSize=setKeys.size(), gamma = 60, v=20;
-    double c1 = 1.5;
+    double c1 = 2.4;
     //vector<uint64_t> keys;
     //keys.resize(hashSize);
     int fieldSizeBytes = fieldSize % 8 == 0 ? fieldSize/8 : fieldSize/8 + 1;
@@ -140,6 +140,64 @@ vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y,
     return fss_shares;
 }
 
+vector<vector<block>> share_trivialFSS2(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uint64_t point_x, bool x, uint64_t point_y, bool y, block rand0, block rand1){
+    //std::cout << "Let's write the trivial FSS in 2 Dimensions " << std::endl;
+    vector<vector<block>> FSS_key0, FSS_key1;
+    BitVector FSS_keyzero, FSS_keyone;
+    PRNG tprng(toBlock(14));
+    uint64_t int_start, start_point_x, end_point_x, end_point_y, start_point_y;
+    vector<vector<block>> fss_shares;
+    //u8 * u8_key0, u8_key1;
+    for (int i = 0; i < 128; i++){
+        rand0 = tprng.get();
+        rand1 = tprng.get();
+        FSS_keyzero.assign(rand0);
+        FSS_keyone.assign(rand1); //// check the size of this!!!! if it is freshly assigning in each iteration
+
+    //(grid_x, grid_y) = grid label
+        grid_x = grid_x * (2 * delta);
+        grid_y = grid_y * (2 * delta);
+        int_start = 64 - (2 * delta);
+ 
+    //Let's process the X-coord which is the second half of the block, access block.mData[0]
+    // in a block(y, x)
+        if (x) { // fill right
+        start_point_x = int_start + (point_x - grid_x); 
+        for (int i = start_point_x; i < 64; i++)
+            FSS_keyone[64 + i] = FSS_keyzero[64 + i];
+        }
+        else { // fill left 
+            end_point_x = int_start + (point_x - grid_x); 
+            for (int i = int_start; i < end_point_x; i++)
+                FSS_keyone[64 + i] = FSS_keyzero[64 + i];
+        }
+        if (y) { // fill top
+        start_point_y = int_start + (point_y - grid_y); 
+        for (int i = start_point_y; i < 64; i++)
+            FSS_keyone[i] = FSS_keyzero[i];
+        }
+        else { // fill bottom
+            end_point_y = int_start + (point_y - grid_y); 
+            for (int i = int_start; i < end_point_y; i++)
+                FSS_keyone[i] = FSS_keyzero[i];  
+        }
+    
+    //std::cout << "FSS interval  " << (FSS_keyzero ^ FSS_keyone) << std::endl;
+
+    // converting the BitVector -> Block
+        u8 * u8_key0 = FSS_keyzero.data();
+        u8 * u8_key1 = FSS_keyone.data();
+        block k0(u8_key0[15],u8_key0[14],u8_key0[13],u8_key0[12],u8_key0[11],u8_key0[10],u8_key0[9],u8_key0[8],u8_key0[7],u8_key0[6],u8_key0[5],u8_key0[4],u8_key0[3],u8_key0[2],u8_key0[1],u8_key0[0]);
+        block k1(u8_key1[15],u8_key1[14],u8_key1[13],u8_key1[12],u8_key1[11],u8_key1[10],u8_key1[9],u8_key1[8],u8_key1[7],u8_key1[6],u8_key1[5],u8_key1[4],u8_key1[3],u8_key1[2],u8_key1[1],u8_key1[0]);
+        
+        fss_shares[0].push_back(k0);
+        fss_shares[1].push_back(k1);
+
+        }
+
+        return fss_shares;
+}
+
 /*
     This implementation assumes 2-dimensions
 */
@@ -231,6 +289,7 @@ void far_apart_FssShare(uint64_t delta, int nSquares, vector<block> &okvs0, vect
         //okvsKeys.push_back(toBlock(grd_tr_y, grd_tr_x));
         //std::cout << "keys " << okvsKeys.back() << " " << okvsVal0.back()  << "  " << okvsVal1.back() << std::endl;
         //std::cout << "grd id " << grd_tr_x << "  " << grd_tr_y << std::endl;
+        
 
     }
     //std::cout << "sizes " << okvsKeys[0] << "  " << okvsVal0[0]  << "  " << okvsVal1[0] << std::endl;
@@ -243,14 +302,16 @@ void far_apart_FssShare(uint64_t delta, int nSquares, vector<block> &okvs0, vect
     //cout << "FSS_Share took in milliseconds: " << duration << endl;
 
     //std::cout << "key okvsVals0[0] " << okvsKeys[3] << "  " << okvsVal1[3] << std::endl;
+    
 }
    
+
 void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, uint64_t delta, uint64_t hashSize){
     //std::cout << "we are now evaluating the FSS, far apart " << std::endl;  
     uint64_t len_sqr = 2* delta;
     uint64_t grd_x, grd_y, x, y; 
     int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
-    double c1 = 1.5; // for okvs
+    double c1 = 2.4; // for okvs
 
     uint64_t okvs_key;
     
@@ -335,22 +396,23 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, u
     BitIterator iter_x(valBytes.data(), int_start_x + (x - grd_x));
     y_share = *iter_y;
     x_share = *iter_x;
+    uint64_t
     //std::cout << "(y, x) " << int(y_share) << "  " << int(x_share) << std::endl;
     
 }
 
 /*
-void FssShare_Enumerate(uint64_t delta, int nSquares, vector<block> &okvs0, vector<block> &okvs1){
+void FssShare_Enumerate(uint64_t delta, int nSquares, vector<vector<block>> &okvs0, vector<vector<block>> &okvs1){
 
     //std::cout << "balls are pairwise 3*delta apart " << std::endl;
     auto t1 = high_resolution_clock::now();
 
     //initialize variables
     uint64_t len_sqr = 2 * delta;
-    vector<block> okvsVal0, okvsVal1, shares;
+    vector<vector<block>> okvsVal0, okvsVal1, shares;
     vector<uint64_t> okvsKeys; // vals0 - fsskeys0, vals1 - fsskeys1
     uint64_t bl_x, bl_y, br_x, br_y, tl_x, tl_y, tr_x, tr_y, grd_bl_x, grd_bl_y, grd_br_x, grd_br_y, grd_tl_x, grd_tl_y, grd_tr_x, grd_tr_y, grd_key;
-    block rand;
+    block rand0, rand1;
     PRNG mprng(toBlock(31));
 
     // let's process the squares: identify the 2^dim = 4 grid cells -> compute fsskey0, fsskey1 
@@ -363,10 +425,14 @@ void FssShare_Enumerate(uint64_t delta, int nSquares, vector<block> &okvs0, vect
         bl_x = delta + (i*2*len_sqr);
         bl_y = delta; // make bl_y = delta + (i*2*len_sqr)
         return_grid(bl_x, bl_y, grd_bl_x, grd_bl_y, len_sqr);
-        rand = mprng.get();
-        shares = share_trivialFSS(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true, rand);
-        okvsVal0.push_back(shares[0]);
-        okvsVal1.push_back(shares[1]);
+        rand0 = mprng.get();
+        rand1 = mprng.get();
+        shares = share_trivialFSS2(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true, rand0, rand1);
+        for (int k = 0; k < 128; k++){
+                okvsVal0[k].push_back(shares[0][k]);
+                okvsVal1[k].push_back(shares[1][k]);
+        }
+        
         grd_key = grd_bl_y;
         grd_key = grd_bl_y << 32;
         grd_key = grd_key + grd_bl_x;
@@ -378,10 +444,13 @@ void FssShare_Enumerate(uint64_t delta, int nSquares, vector<block> &okvs0, vect
         tl_x = bl_x;
         tl_y = bl_y + len_sqr;
         return_grid(tl_x, tl_y, grd_tl_x, grd_tl_y, len_sqr);
-        rand = mprng.get();
-        shares = share_trivialFSS(delta, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false, rand);
-        okvsVal0.push_back(shares[0]);
-        okvsVal1.push_back(shares[1]);
+        rand0 = mprng.get();
+        rand1 = mprng.get();
+        shares = share_trivialFSS2(delta, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false, rand0, rand1);
+        for (int k = 0; k < 128; k++){
+                okvsVal0[k].push_back(shares[0][k]);
+                okvsVal1[k].push_back(shares[1][k]);
+        }
         grd_key = grd_tl_y;
         grd_key = grd_tl_y << 32;
         grd_key = grd_key + grd_tl_x;
@@ -393,10 +462,13 @@ void FssShare_Enumerate(uint64_t delta, int nSquares, vector<block> &okvs0, vect
         br_x = bl_x + len_sqr;
         br_y = bl_y;
         return_grid(br_x, br_y, grd_br_x, grd_br_y, len_sqr);
-        rand = mprng.get();
-        shares = share_trivialFSS(delta, grd_br_x, grd_br_y, br_x, false, br_y, true, rand);
-        okvsVal0.push_back(shares[0]);
-        okvsVal1.push_back(shares[1]);
+        rand0 = mprng.get();
+        rand1 = mprng.get();
+        shares = share_trivialFSS2(delta, grd_br_x, grd_br_y, br_x, false, br_y, true, rand0, rand1);
+        for (int k = 0; k < 128; k++){
+                okvsVal0[k].push_back(shares[0][k]);
+                okvsVal1[k].push_back(shares[1][k]);
+        }
         grd_key = grd_br_y;
         grd_key = grd_br_y << 32;
         grd_key = grd_key + grd_br_x;
@@ -407,10 +479,13 @@ void FssShare_Enumerate(uint64_t delta, int nSquares, vector<block> &okvs0, vect
         tr_x = bl_x + len_sqr;
         tr_y = bl_y + len_sqr;
         return_grid(tr_x, tr_y, grd_tr_x, grd_tr_y, len_sqr);
-        rand = mprng.get();
-        shares = share_trivialFSS(delta, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false, rand);
-        okvsVal0.push_back(shares[0]);
-        okvsVal1.push_back(shares[1]);
+        rand0 = mprng.get();
+        rand1 = mprng.get();
+        shares = share_trivialFSS2(delta, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false, rand0, rand1);
+        for (int k = 0; k < 128; k++){
+                okvsVal0[k].push_back(shares[0][k]);
+                okvsVal1[k].push_back(shares[1][k]);
+        }
         grd_key = grd_tr_y;
         grd_key = grd_tr_y << 32;
         grd_key = grd_key + grd_tr_x;
@@ -420,12 +495,22 @@ void FssShare_Enumerate(uint64_t delta, int nSquares, vector<block> &okvs0, vect
     }
 
     // OKVS (keys, values = fsskeys0) || (keys, values = fsskeys1)
-    PaxosEncode(okvsKeys, okvsVal0, okvsVal1, okvs0, okvs1, 128);
+    vector<block> Okvs0, Okvs1;
+    for(int i = 0; i < 128; i++){
+        PaxosEncode(okvsKeys, okvsVal0[i], okvsVal1[i], Okvs0, Okvs1, 128);
+        okvs0.push_back(Okvs0);
+        okvs1.push_back(Okvs1);
+        Okvs0.clear();
+        Okvs1.clear();
+    }
     
     //auto t2 = high_resolution_clock::now();
     //auto duration = duration_cast<milliseconds>(t2-t1).count();
     //cout << "FSS_Share took in milliseconds: " << duration << endl;
-}
+
+    //testing SHA
+    
+} 
 */
 
 void OkvsEncode(std::vector<uint64_t> setKeys, const std::vector<array<osuCrypto::block, 2>> setValues0, std::vector<array<osuCrypto::block, 12>>& okvs0, uint64_t fieldSize)
@@ -510,3 +595,20 @@ void OkvsEncode(std::vector<uint64_t> setKeys, const std::vector<array<osuCrypto
 }*/
    
    
+/*
+    RandomOracle sha(sizeof(block)), sha1(sizeof(block));
+    u8 a = 1;
+    u8 b = 0;
+    sha.Update(a);
+    sha.Update(b);
+    block r0, r1, r2;
+    sha.Final(r0);
+    std::cout << "sha " << r0 << std::endl;
+    sha.Reset();
+    sha.Update(b);
+    sha.Final(r1);
+    std::cout << "sha " << r1 << std::endl;
+    sha1.Update(b);
+    sha1.Final(r2);
+    std::cout << "sha " << r2 << std::endl;
+*/
