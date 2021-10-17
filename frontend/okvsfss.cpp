@@ -132,70 +132,14 @@ vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y,
     // converting the BitVector -> Block
     u8 * u8_key0 = FSS_keyzero.data();
     u8 * u8_key1 = FSS_keyone.data();
+
+    // use span function to block type thing
     block k0(u8_key0[15],u8_key0[14],u8_key0[13],u8_key0[12],u8_key0[11],u8_key0[10],u8_key0[9],u8_key0[8],u8_key0[7],u8_key0[6],u8_key0[5],u8_key0[4],u8_key0[3],u8_key0[2],u8_key0[1],u8_key0[0]);
     block k1(u8_key1[15],u8_key1[14],u8_key1[13],u8_key1[12],u8_key1[11],u8_key1[10],u8_key1[9],u8_key1[8],u8_key1[7],u8_key1[6],u8_key1[5],u8_key1[4],u8_key1[3],u8_key1[2],u8_key1[1],u8_key1[0]);
     vector<block> fss_shares;
     fss_shares.push_back(k0);
     fss_shares.push_back(k1);
     return fss_shares;
-}
-
-vector<vector<block>> share_trivialFSS2(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uint64_t point_x, bool x, uint64_t point_y, bool y, block rand0, block rand1){
-    //std::cout << "Let's write the trivial FSS in 2 Dimensions " << std::endl;
-    vector<vector<block>> FSS_key0, FSS_key1;
-    BitVector FSS_keyzero, FSS_keyone;
-    PRNG tprng(toBlock(14));
-    uint64_t int_start, start_point_x, end_point_x, end_point_y, start_point_y;
-    vector<vector<block>> fss_shares;
-    //u8 * u8_key0, u8_key1;
-    for (int i = 0; i < 128; i++){
-        rand0 = tprng.get();
-        rand1 = tprng.get();
-        FSS_keyzero.assign(rand0);
-        FSS_keyone.assign(rand1); //// check the size of this!!!! if it is freshly assigning in each iteration
-
-    //(grid_x, grid_y) = grid label
-        grid_x = grid_x * (2 * delta);
-        grid_y = grid_y * (2 * delta);
-        int_start = 64 - (2 * delta);
- 
-    //Let's process the X-coord which is the second half of the block, access block.mData[0]
-    // in a block(y, x)
-        if (x) { // fill right
-        start_point_x = int_start + (point_x - grid_x); 
-        for (int i = start_point_x; i < 64; i++)
-            FSS_keyone[64 + i] = FSS_keyzero[64 + i];
-        }
-        else { // fill left 
-            end_point_x = int_start + (point_x - grid_x); 
-            for (int i = int_start; i < end_point_x; i++)
-                FSS_keyone[64 + i] = FSS_keyzero[64 + i];
-        }
-        if (y) { // fill top
-        start_point_y = int_start + (point_y - grid_y); 
-        for (int i = start_point_y; i < 64; i++)
-            FSS_keyone[i] = FSS_keyzero[i];
-        }
-        else { // fill bottom
-            end_point_y = int_start + (point_y - grid_y); 
-            for (int i = int_start; i < end_point_y; i++)
-                FSS_keyone[i] = FSS_keyzero[i];  
-        }
-    
-    //std::cout << "FSS interval  " << (FSS_keyzero ^ FSS_keyone) << std::endl;
-
-    // converting the BitVector -> Block
-        u8 * u8_key0 = FSS_keyzero.data();
-        u8 * u8_key1 = FSS_keyone.data();
-        block k0(u8_key0[15],u8_key0[14],u8_key0[13],u8_key0[12],u8_key0[11],u8_key0[10],u8_key0[9],u8_key0[8],u8_key0[7],u8_key0[6],u8_key0[5],u8_key0[4],u8_key0[3],u8_key0[2],u8_key0[1],u8_key0[0]);
-        block k1(u8_key1[15],u8_key1[14],u8_key1[13],u8_key1[12],u8_key1[11],u8_key1[10],u8_key1[9],u8_key1[8],u8_key1[7],u8_key1[6],u8_key1[5],u8_key1[4],u8_key1[3],u8_key1[2],u8_key1[1],u8_key1[0]);
-        
-        fss_shares[0].push_back(k0);
-        fss_shares[1].push_back(k1);
-
-        }
-
-        return fss_shares;
 }
 
 /*
@@ -209,13 +153,14 @@ void far_apart_FssShare(uint64_t delta, int nSquares, vector<block> &okvs0, vect
     //initialize variables
     uint64_t len_sqr = 2 * delta;
     vector<block> okvsVal0, okvsVal1, shares;
-    vector<uint64_t> okvsKeys; // vals0 - fsskeys0, vals1 - fsskeys1
+    vector<uint64_t> okvsKeys; // vals0 -> fsskeys0, vals1 -> fsskeys1
+    //below are variables to process a single square 
     uint64_t bl_x, bl_y, br_x, br_y, tl_x, tl_y, tr_x, tr_y, grd_bl_x, grd_bl_y, grd_br_x, grd_br_y, grd_tl_x, grd_tl_y, grd_tr_x, grd_tr_y, grd_key;
     block rand0, rand1;
     PRNG mprng(toBlock(31));
 
     // let's process the squares: identify the 2^dim = 4 grid cells -> compute fsskey0, fsskey1 
-    // Input: square1 (delta, delta), square2 (delta + 4*delta, delta) ..... square_n(delta + 4(n -1)delta, delta) ...
+    // input: square1 (delta, delta), square2 (delta + 4*delta, delta) ..... square_n(delta + 4(n -1)delta, delta) ...
     bl_x = delta;
     bl_y = delta; 
 
@@ -313,7 +258,7 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, u
     int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
     double c1 = 2.4; // for okvs
 
-    uint64_t okvs_key;
+    uint64_t okvs_key, yx_share;
     
      //handling the key
     x = x_coord;
@@ -396,6 +341,7 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, u
     BitIterator iter_x(valBytes.data(), int_start_x + (x - grd_x));
     y_share = *iter_y;
     x_share = *iter_x;
+    
     //std::cout << "(y, x) " << int(y_share) << "  " << int(x_share) << std::endl;
     
 }
@@ -615,7 +561,7 @@ void OkvsEncode(std::vector<uint64_t> setKeys, const std::vector<array<osuCrypto
    
 } 
 
-/*void OKVSDecode(vector<block> okvs, block key){
+void OKVSDecode(vector<block> okvs, block key){
     cout << "Let's write decode " << std::endl;
     // 1. convert block key -> to unint64_t keys using xxH64
     // nothing changes in setKeysandValues()
@@ -652,20 +598,3 @@ void OkvsEncode(std::vector<uint64_t> setKeys, const std::vector<array<osuCrypto
 }*/
    
    
-/*
-    RandomOracle sha(sizeof(block)), sha1(sizeof(block));
-    u8 a = 1;
-    u8 b = 0;
-    sha.Update(a);
-    sha.Update(b);
-    block r0, r1, r2;
-    sha.Final(r0);
-    std::cout << "sha " << r0 << std::endl;
-    sha.Reset();
-    sha.Update(b);
-    sha.Final(r1);
-    std::cout << "sha " << r1 << std::endl;
-    sha1.Update(b);
-    sha1.Final(r2);
-    std::cout << "sha " << r2 << std::endl;
-*/

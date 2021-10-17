@@ -6,6 +6,10 @@
 #include <cryptoTools/Common/Timer.h>
 #include <cryptoTools/Crypto/AES.h>
 #include <cryptoTools/Crypto/PRNG.h>
+//adding for the transpose
+#include <cryptoTools/Common/Matrix.h>
+#include <cryptoTools/Common/MatrixView.h>
+#include "libOTe/Tools/Tools.h"
 
 #include <algorithm>
 #include "libOTe/Base/BaseOT.h"
@@ -21,7 +25,7 @@
 
 using namespace osuCrypto; 
 
-
-
+void Transpose_View_Test();
+//void fuzzyPSI_fast(u64 keysize, u64 y_size, u64 x_volume); 
 void fuzzyPSI(u64 keysize, u64 y_size, u64 x_volume); 
 void fuzzyPSI_int(u64 keysize); 

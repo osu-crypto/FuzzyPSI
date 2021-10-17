@@ -124,9 +124,9 @@ int main(int argc, char** argv)
     // add calls here to test the fuzzyPSI code 
     if (cmd.isSet("f"))
     {
-        //std::cout << "Let's do fuzzy PSI " << std::endl; 
+        std::cout << "Let's do fuzzy PSI " << std::endl; 
         //fuzzyPSI(11, 2000, 10000000);
-        //fuzzyPSI(11, 20, 100);
+        fuzzyPSI(11, 3, 10);
 
         //here we are testing a basic okvs call 
         /*cout << "Let's do OKVS " << std::endl;
@@ -152,39 +152,12 @@ int main(int argc, char** argv)
         uint64_t delta = 10;
         uint64_t nsquares = 10;
         uint64_t nkeys = nsquares * 4;
-        vector<vector<block>> okvs_fsskey0, okvs_fsskey1;
+        vector<block> okvs_fsskey0, okvs_fsskey1;
         far_apart_FssShare(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
-        /*
-        auto t1 = high_resolution_clock::now();
-        far_apart_FssEval(86, 25, okvs_fsskey1, delta, nkeys); 
-        auto t2 = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(t2-t1).count();
-        cout << "FSS_Eval * 1M times took in milliseconds: " << duration << endl;
+
+        cout << "matrix transpose " << std::endl;
+        Transpose_View_Test();
         
-        far_apart_FssEval(96, 15, okvs_fsskey1, delta, nkeys); 
-        far_apart_FssEval(96, 15, okvs_fsskey0, delta, nkeys); 
-
-        
-        far_apart_FssEval(27, 24, okvs_fsskey0, delta, nkeys);
-        far_apart_FssEval(27, 24, okvs_fsskey1, delta, nkeys);
-
-
-        far_apart_FssEval(66, 25, okvs_fsskey0, delta, nkeys); 
-        far_apart_FssEval(66, 25, okvs_fsskey1, delta, nkeys); 
-
-        far_apart_FssEval(52, 24, okvs_fsskey0, delta, nkeys);
-        far_apart_FssEval(52, 24, okvs_fsskey1, delta, nkeys);
-
-        far_apart_FssEval(30, 22, okvs_fsskey1, delta, nkeys);
-        far_apart_FssEval(30, 22, okvs_fsskey0, delta, nkeys);
-        
-        auto t1 = high_resolution_clock::now();
-        far_apart_FssEval(95, 29, okvs_fsskey0, delta, nkeys); 
-        auto t2 = high_resolution_clock::now();
-        auto duration = duration_cast<milliseconds>(t2-t1).count();
-        cout << "FSS_Eval times took in milliseconds: " << duration << endl;
-        //far_apart_FssEval(95, 29, okvs_fsskey1, delta, nkeys); 
-        */
         return 0;
     }
 
@@ -347,3 +320,34 @@ int main(int argc, char** argv)
 
     return 0;
 }
+/*
+        auto t1 = high_resolution_clock::now();
+        far_apart_FssEval(86, 25, okvs_fsskey1, delta, nkeys); 
+        auto t2 = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "FSS_Eval * 1M times took in milliseconds: " << duration << endl;
+        
+        far_apart_FssEval(96, 15, okvs_fsskey1, delta, nkeys); 
+        far_apart_FssEval(96, 15, okvs_fsskey0, delta, nkeys); 
+
+        
+        far_apart_FssEval(27, 24, okvs_fsskey0, delta, nkeys);
+        far_apart_FssEval(27, 24, okvs_fsskey1, delta, nkeys);
+
+
+        far_apart_FssEval(66, 25, okvs_fsskey0, delta, nkeys); 
+        far_apart_FssEval(66, 25, okvs_fsskey1, delta, nkeys); 
+
+        far_apart_FssEval(52, 24, okvs_fsskey0, delta, nkeys);
+        far_apart_FssEval(52, 24, okvs_fsskey1, delta, nkeys);
+
+        far_apart_FssEval(30, 22, okvs_fsskey1, delta, nkeys);
+        far_apart_FssEval(30, 22, okvs_fsskey0, delta, nkeys);
+        
+        auto t1 = high_resolution_clock::now();
+        far_apart_FssEval(15, 15, okvs_fsskey0, delta, nkeys); 
+        auto t2 = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "FSS_Eval times took in milliseconds: " << duration << endl;
+        //far_apart_FssEval(95, 29, okvs_fsskey1, delta, nkeys); 
+        */
