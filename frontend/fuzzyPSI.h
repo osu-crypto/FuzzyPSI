@@ -1,4 +1,5 @@
 #include <iostream>
+#include <unordered_map>
 #include <cryptoTools/Common/Defines.h>
 #include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/Session.h>

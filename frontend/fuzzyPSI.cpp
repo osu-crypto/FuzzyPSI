@@ -280,6 +280,7 @@ void fss_interval3(uint64_t a, uint64_t b){
 
 void fuzzyPSI(u64 keysize, u64 y_input_size, u64 x_volume)
 {
+
     // Setup networking. Setting up channels for PSI, sender and recver according to OT not PSI 
     IOService ios;
     Channel senderChl = Session(ios, "localhost:1212", SessionMode::Server).addChannel();
@@ -288,11 +289,11 @@ void fuzzyPSI(u64 keysize, u64 y_input_size, u64 x_volume)
     // key length = # of blocks needed to represent the FSS keys
     // determine this according to the FSS function we calling PSI on
     // for a single interval the **keysize is 22**
-    u64 fsskeySize =  1200; //  12000 works
+    u64 fsskeySize =  110; //  12000 works
     u64 x_input_volume = x_volume;
 
     // The number of OTs - we need \kappa OTs
-    int baseCount = 150; // for  BFSS - baseCount = hamming distance
+    int baseCount = 440; // for  BFSS - baseCount = hamming distance
     
     // **PSI receiver** has 128 choices and OT received blocks 
     // **PSI receiver** has an unstructured set r_inputs as inputs
@@ -383,8 +384,8 @@ void fuzzyPSI(u64 keysize, u64 y_input_size, u64 x_volume)
         }
         //sender sending hash of FSS eval of his inputs
         recverChl.asyncSend(hashed_inputs); 
-        for (int i = 0; i < hashed_inputs.size(); i++)
-            std::cout << "recver hash  " << hashed_inputs[i] << std::endl;  
+        //for (int i = 0; i < hashed_inputs.size(); i++)
+        //    std::cout << "recver hash  " << hashed_inputs[i] << std::endl;  
 
        
         });
@@ -446,8 +447,9 @@ void fuzzyPSI(u64 keysize, u64 y_input_size, u64 x_volume)
     // **PSI receiver learns the actual output here**
     // # idea 
     // use fsskeys0 and compute the hashes, |hashes| = x_volume (#structured input) and sort the vector hashinput
+    std::unordered_map<block, uint64_t> recv_hash; 
 
-    for (u64 r = 0; r < x_input_volume; r++){
+    for (uint64_t r = 0; r < x_input_volume; r++){
             /*
             fsskeys0.push_back(toBlock(r));
             s_hasher.ecbEncBlocks(fsskeys0.data(), fsskeySize*baseCount+1, s_hashed_item.data());
@@ -459,37 +461,34 @@ void fuzzyPSI(u64 keysize, u64 y_input_size, u64 x_volume)
             s_sha.Update(s_psiHash);
             s_sha.Update(toBlock(r));
             //s_sha.Update(fsskeys0.data(), fsskeys0.size() * sizeof(block));
-            for (int k = 0; k < fsskeys0.size(); k++)
+            for (int k = 0; k < fsskeys0.size(); k++) 
                 s_sha.Update(fsskeys0[k]);
             s_sha.Final(s_hash);
             s_sha.Reset();
-            recver_hashes.push_back(s_hash);
+            //recver_hashes.push_back(s_hash);
+            recv_hash.insert({s_hash, r});
         }
 
-    for (int i = 0; i < recver_hashes.size(); i++)
-        std::cout << "sender keys  " << recver_hashes[i] << std::endl;
-    std::sort(recver_hashes.begin(), recver_hashes.end());
+    vector<uint64_t> psi_outputs;
+    for (u64 i = 0; i < recvHashinputs.size(); i++){
+        if(recv_hash.find(recvHashinputs[i]) != recv_hash.end()){
+            psi_outputs.push_back(recv_hash[recvHashinputs[i]]);
+        }
+
+    } 
+    
+    //for (int i = 0; i < recver_hashes.size(); i++)
+    //    std::cout << "sender keys  " << recver_hashes[i] << std::endl;
     
 
-    // search rechHashinputs against recver_hashes
-    vector<block> psi_outputs; 
-    int output_size = 0;
-    for (u64 i = 0; i < recvHashinputs.size(); i++){
-        if(binary_search(recver_hashes.begin(), recver_hashes.end(), recvHashinputs[i])){
-            psi_outputs.push_back(recvHashinputs[i]);
-            output_size = output_size + 1;
-        }
-        else 
-            cout << "problematic point is " << i << std::endl;
-    }
-
+   
     if(psi_outputs.size() == recvHashinputs.size())
         cout << " PSI WORKS " << std::endl;
-    else{
+    else
         cout << " PSI FAILS " << std::endl;
-        cout << " output size " << output_size << std::endl;
-    }
-
+    cout << " output size " << psi_outputs.size() << std::endl;
+    
+   
 }
 
 /*
@@ -516,6 +515,22 @@ void fuzzyPSI(u64 keysize, u64 y_input_size, u64 x_volume)
             s_sha.Final(s_buff);
             memcpy(&s_hash, s_buff, std::min<u64>(RandomOracle::HashSize, sizeof(block)));
             //s_hash = *(block*)s_buff;
+*/
+ /*
+    std::sort(recver_hashes.begin(), recver_hashes.end());
+    
+    // search rechHashinputs against recver_hashes
+    
+    int output_size = 0;
+    for (u64 i = 0; i < recvHashinputs.size(); i++){
+        if(binary_search(recver_hashes.begin(), recver_hashes.end(), recvHashinputs[i])){
+            psi_outputs.push_back(recvHashinputs[i]);
+            output_size = output_size + 1;
+        }
+        else 
+            cout << "problematic point is " << i << std::endl;
+    }
+    
 */
 
 //incomplete things!!

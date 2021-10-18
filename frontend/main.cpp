@@ -126,7 +126,7 @@ int main(int argc, char** argv)
     {
         std::cout << "Let's do fuzzy PSI " << std::endl; 
         //fuzzyPSI(11, 2000, 10000000);
-        fuzzyPSI(11, 3, 10);
+        fuzzyPSI(11, 33, 100);
 
         //here we are testing a basic okvs call 
         /*cout << "Let's do OKVS " << std::endl;
