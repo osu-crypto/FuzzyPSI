@@ -126,7 +126,7 @@ int main(int argc, char** argv)
     {
         std::cout << "Let's do fuzzy PSI " << std::endl; 
         //fuzzyPSI(11, 2000, 10000000);
-        fuzzyPSI(11, 33, 100);
+        fuzzyPSI(11, 3, 10);
 
         //here we are testing a basic okvs call 
         /*cout << "Let's do OKVS " << std::endl;
@@ -149,14 +149,35 @@ int main(int argc, char** argv)
         //here we are testing a basic share FSS for far apart 
         
         cout << "OKVS FSS " << std::endl;
-        uint64_t delta = 10;
-        uint64_t nsquares = 10;
+        uint64_t delta = 30;
+        uint64_t nsquares = 2800;
         uint64_t nkeys = nsquares * 4;
         vector<block> okvs_fsskey0, okvs_fsskey1;
         far_apart_FssShare(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
+        
+        for (int i = 0; i < 500; i++)
+            far_apart_FssEval(86, 25, okvs_fsskey1, delta, nkeys);
+            //psi_FssEval(86, 25, okvs_fsskeys, delta, nkeys); 
+        
+        
+        vector<vector<block>> test_data;
+        PRNG s_prng(toBlock(12));
+        for (int i = 0; i < 14560; i++){
+            vector<block> sample(440); 
+            s_prng.get(sample.data(), sample.size());
+            test_data.push_back(sample);
+        }
 
-        cout << "matrix transpose " << std::endl;
-        Transpose_View_Test();
+        std::cout << "data size " << test_data.size() << std::endl;
+        std::cout << test_data[0].size() << std::endl;
+        auto t1 = high_resolution_clock::now();
+        std::cout << "testing psi_FSSEval " << std::endl;
+            psi_FssEval(80, 25, test_data, delta, nkeys);
+        auto t2 = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "FSS_Eval simulation operation took in milliseconds: " << duration << endl;
+        //cout << "matrix transpose " << std::endl;
+        //Transpose_View_Test();
         
         return 0;
     }

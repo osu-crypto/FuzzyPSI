@@ -470,9 +470,12 @@ void fuzzyPSI(u64 keysize, u64 y_input_size, u64 x_volume)
         }
 
     vector<uint64_t> psi_outputs;
-    for (u64 i = 0; i < recvHashinputs.size(); i++){
+    for (uint64_t i = 0; i < recvHashinputs.size(); i++){
         if(recv_hash.find(recvHashinputs[i]) != recv_hash.end()){
             psi_outputs.push_back(recv_hash[recvHashinputs[i]]);
+        }
+        else {
+            cout << "problematic point is " << recv_hash[recvHashinputs[i]] << std::endl; 
         }
 
     } 
