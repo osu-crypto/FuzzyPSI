@@ -2,6 +2,11 @@
 
 using namespace osuCrypto;
 
+
+/*
+    This implementation assumes 2-dimensions
+*/
+// Helper function for FSS Sharing
 /* How we write a square and identify the grid cells
     1. Grid cell label is bottom left co-coordinate
     2. We can identify a square also by bottom left coord
@@ -16,12 +21,10 @@ using namespace osuCrypto;
     3. First square Bottomleftlabel - (delta, delta)
     4. To get next square add (2*delta) along the the x-axis
 */
-
 void return_grid(uint64_t x, uint64_t y, uint64_t &grd_x, uint64_t &grd_y, uint64_t sqrlen){
         grd_x = x / sqrlen;
         grd_y = y / sqrlen;
 }
-
 void PaxosEncode(std::vector<uint64_t> setKeys, const std::vector<block> setValues0, const std::vector<block> setValues1, std::vector<block>& okvs0, std::vector<block>& okvs1, uint64_t fieldSize)
 {
     GF2E dhBitsVal;
@@ -75,7 +78,6 @@ void PaxosEncode(std::vector<uint64_t> setKeys, const std::vector<block> setValu
     //cout << "ENCODE " << setKeys[0] << " " << indices[0] << " " << indices[1] << std::endl;
    
 } 
-
 vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uint64_t point_x, bool x, uint64_t point_y, bool y, block rand0, block rand1){
     //std::cout << "Let's write the trivial FSS in 2 Dimensions " << std::endl;
     BitVector FSS_keyzero, FSS_keyone;
@@ -141,10 +143,7 @@ vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y,
     fss_shares.push_back(k1);
     return fss_shares;
 }
-
-/*
-    This implementation assumes 2-dimensions
-*/
+// FSS_Share for PSI Receiver 
 void far_apart_FssShare(uint64_t delta, int nSquares, vector<block> &okvs0, vector<block> &okvs1){
 
     //std::cout << "balls are pairwise 3*delta apart " << std::endl;
@@ -249,8 +248,188 @@ void far_apart_FssShare(uint64_t delta, int nSquares, vector<block> &okvs0, vect
     //std::cout << "key okvsVals0[0] " << okvsKeys[3] << "  " << okvsVal1[3] << std::endl;
     
 }
-   
+//FSS_Eval for PSI Sender, #baseOT OKVS instances, returns the SHA evaluation    
+void psi_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::block>> okvs, uint64_t delta, uint64_t hashSize){
+    
+    uint64_t nbaseOT = 2; // this will be 440, can be sent a parameter
+    uint64_t len_sqr = 2 * delta;
+    // setting OKVS parameters
+    int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
+    double c1 = 1.3; // for okvs
 
+    uint64_t okvs_key, yx_share, grd_x, grd_y, x, y; 
+    x = x_coord;
+    y = y_coord;
+    for (int l = 0; l < 1; l++){
+        return_grid(x, y, grd_x, grd_y, len_sqr);
+        okvs_key = grd_y;
+        okvs_key = okvs_key << 32;
+        okvs_key = okvs_key + grd_x;
+    }
+    // start by learning which indices we need for a key
+    // decoding from checkoutput() OKVS
+    //initialize just to be able to dec() -- below 3 calls only set up the hash functions
+    ObliviousDictionary * dict = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
+    dict->init();
+    
+
+    // handling okvs matrix
+    // converting block to bytes
+    vector<GF2EVector> okvs_gf2e;
+    for (int k = 0; k < okvs.size(); k++) {
+        vector<byte> okvs_idx;
+        GF2EVector tmp_vec;
+        GF2X temp;
+        okvs_idx.resize(okvs[k].size() * sizeof(block)); // size can also be 440 * sizeof(block)
+        memcpy(okvs_idx.data(), okvs[k].data(), okvs[k].size() * sizeof(block));
+        for (int i = 0; i < okvs[k].size(); i++){
+            GF2XFromBytes(temp, okvs_idx.data() + i*fieldSizeBytes, fieldSizeBytes);
+            tmp_vec.push_back(to_GF2E(temp)); 
+        }
+        okvs_gf2e.push_back(tmp_vec);
+        //cout << " okvs size " << k << " " << okvs_gf2e[k].size() << std::endl;
+    }
+
+    // not sure if we can add two variables of type of GF2EVector, might have to iterate and add
+    if (okvs_gf2e.size() == 0)
+        std::cout << "ERROR: okvs_gf2e is empty!" << std::endl;
+    GF2EVector dhBitsVals;
+    GF2E eval;
+    eval = 0; 
+    for (int l = 0; l < 1; l++){
+        dhBitsVals.clear(); 
+        auto indices = dict->dec(okvs_key);
+        for (int i = 0; i < okvs_gf2e[indices[0]].size(); i++)
+            dhBitsVals.push_back(okvs_gf2e[indices[0]][i]);
+        for (int i = 1; i < 3; i++){
+            for (int j = 0; j < dhBitsVals.size(); j++){
+                dhBitsVals[j] += okvs_gf2e[indices[i]][j];
+            }
+        }
+        // this is just for simulation purposes, remove later for a single evaluation
+    }
+    RandomOracle sha_fss(sizeof(block));
+    block fss_output;
+    // computing OKVS key
+
+    
+    //computing the starting indices within block to access the shares
+    int int_start_y = 63 - (2 * delta);
+    int int_start_x = 64 + int_start_y;
+    grd_y = grd_y * 2 * delta;
+    grd_x = grd_x * 2 * delta; 
+    //BitVector val_in_bits
+    std::cout << "dhbitsvals size " << dhBitsVals.size() << std::endl;
+    for (int l = 0; l < 1; l++){
+    
+        for (int i = 0; i < 440; i++){ // hardcoding in the size of dhBitsVals
+            vector<byte> valBytes(fieldSizeBytes);
+            BytesFromGF2X(valBytes.data(), rep(dhBitsVals[i]), fieldSizeBytes);
+            BitIterator iter_y(valBytes.data(), int_start_y + (y - grd_y));
+            BitIterator iter_x(valBytes.data(), int_start_x + (x - grd_x));
+            u8 y_share, x_share;
+            y_share = *iter_y;
+            x_share = *iter_x;
+            sha_fss.Update(y_share);
+            sha_fss.Update(x_share);
+        }
+        sha_fss.Final(fss_output);
+        sha_fss.Reset();
+    }
+    //std::cout << "Eval for points " << fss_output << std::endl;
+}
+// FSS_Eval optimized for Full Domain Evalutation by the PSI Receiver 
+void psiRecver_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::block>> okvs, uint64_t delta, uint64_t hashSize){
+    
+    uint64_t nbaseOT = 2; // this will be 440, can be sent a parameter
+    uint64_t len_sqr = 2 * delta;
+    // setting OKVS parameters
+    int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
+    double c1 = 1.3; // for okvs
+
+    uint64_t okvs_key, yx_share, grd_x, grd_y, x, y; 
+    x = x_coord;
+    y = y_coord;
+    for (int l = 0; l < 1; l++){
+        return_grid(x, y, grd_x, grd_y, len_sqr);
+        okvs_key = grd_y;
+        okvs_key = okvs_key << 32;
+        okvs_key = okvs_key + grd_x;
+    }
+    // start by learning which indices we need for a key
+    // decoding from checkoutput() OKVS
+    //initialize just to be able to dec() -- below 3 calls only set up the hash functions
+    ObliviousDictionary * dict = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
+    dict->init();
+    
+
+    // handling okvs matrix
+    // converting block to bytes
+    vector<GF2EVector> okvs_gf2e;
+    for (int k = 0; k < okvs.size(); k++) {
+        vector<byte> okvs_idx;
+        GF2EVector tmp_vec;
+        GF2X temp;
+        okvs_idx.resize(okvs[k].size() * sizeof(block)); // size can also be 440 * sizeof(block)
+        memcpy(okvs_idx.data(), okvs[k].data(), okvs[k].size() * sizeof(block));
+        for (int i = 0; i < okvs[k].size(); i++){
+            GF2XFromBytes(temp, okvs_idx.data() + i*fieldSizeBytes, fieldSizeBytes);
+            tmp_vec.push_back(to_GF2E(temp)); 
+        }
+        okvs_gf2e.push_back(tmp_vec);
+        //cout << " okvs size " << k << " " << okvs_gf2e[k].size() << std::endl;
+    }
+
+    // not sure if we can add two variables of type of GF2EVector, might have to iterate and add
+    if (okvs_gf2e.size() == 0)
+        std::cout << "ERROR: okvs_gf2e is empty!" << std::endl;
+    GF2EVector dhBitsVals;
+    GF2E eval;
+    eval = 0; 
+    for (int l = 0; l < 1; l++){
+        dhBitsVals.clear(); 
+        auto indices = dict->dec(okvs_key);
+        for (int i = 0; i < okvs_gf2e[indices[0]].size(); i++)
+            dhBitsVals.push_back(okvs_gf2e[indices[0]][i]);
+        for (int i = 1; i < 3; i++){
+            for (int j = 0; j < dhBitsVals.size(); j++){
+                dhBitsVals[j] += okvs_gf2e[indices[i]][j];
+            }
+        }
+        // this is just for simulation purposes, remove later for a single evaluation
+    }
+    RandomOracle sha_fss(sizeof(block));
+    block fss_output;
+    // computing OKVS key
+
+    
+    //computing the starting indices within block to access the shares
+    int int_start_y = 63 - (2 * delta);
+    int int_start_x = 64 + int_start_y;
+    grd_y = grd_y * 2 * delta;
+    grd_x = grd_x * 2 * delta; 
+    //BitVector val_in_bits
+    std::cout << "dhbitsvals size " << dhBitsVals.size() << std::endl;
+    for (int l = 0; l < 1; l++){
+    
+        for (int i = 0; i < 440; i++){ // hardcoding in the size of dhBitsVals
+            vector<byte> valBytes(fieldSizeBytes);
+            BytesFromGF2X(valBytes.data(), rep(dhBitsVals[i]), fieldSizeBytes);
+            BitIterator iter_y(valBytes.data(), int_start_y + (y - grd_y));
+            BitIterator iter_x(valBytes.data(), int_start_x + (x - grd_x));
+            u8 y_share, x_share;
+            y_share = *iter_y;
+            x_share = *iter_x;
+            sha_fss.Update(y_share);
+            sha_fss.Update(x_share);
+        }
+        sha_fss.Final(fss_output);
+        sha_fss.Reset();
+    }
+    //std::cout << "Eval for points " << fss_output << std::endl;
+}
+
+// FSS for a single OKVS and reading the trivial FSS share
 void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, uint64_t delta, uint64_t hashSize){
     //std::cout << "we are now evaluating the FSS, far apart " << std::endl;  
     uint64_t len_sqr = 2* delta;
@@ -346,96 +525,7 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, u
     
 }
 
-void psi_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::block>> okvs, uint64_t delta, uint64_t hashSize){
-    
-    uint64_t nbaseOT = 2; // this will be 440, can be sent a parameter
-    uint64_t len_sqr = 2 * delta;
-    // setting OKVS parameters
-    int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
-    double c1 = 1.3; // for okvs
-
-    uint64_t okvs_key, yx_share, grd_x, grd_y, x, y; 
-    x = x_coord;
-    y = y_coord;
-    for (int l = 0; l < 1; l++){
-        return_grid(x, y, grd_x, grd_y, len_sqr);
-        okvs_key = grd_y;
-        okvs_key = okvs_key << 32;
-        okvs_key = okvs_key + grd_x;
-    }
-    // start by learning which indices we need for a key
-    // decoding from checkoutput() OKVS
-    //initialize just to be able to dec() -- below 3 calls only set up the hash functions
-    ObliviousDictionary * dict = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
-    dict->init();
-    
-
-    // handling okvs matrix
-    // converting block to bytes
-    vector<GF2EVector> okvs_gf2e;
-    for (int k = 0; k < okvs.size(); k++) {
-        vector<byte> okvs_idx;
-        GF2EVector tmp_vec;
-        GF2X temp;
-        okvs_idx.resize(okvs[k].size() * sizeof(block)); // size can also be 440 * sizeof(block)
-        memcpy(okvs_idx.data(), okvs[k].data(), okvs[k].size() * sizeof(block));
-        for (int i = 0; i < okvs[k].size(); i++){
-            GF2XFromBytes(temp, okvs_idx.data() + i*fieldSizeBytes, fieldSizeBytes);
-            tmp_vec.push_back(to_GF2E(temp)); 
-        }
-        okvs_gf2e.push_back(tmp_vec);
-        //cout << " okvs size " << k << " " << okvs_gf2e[k].size() << std::endl;
-    }
-
-    // not sure if we can add two variables of type of GF2EVector, might have to iterate and add
-    if (okvs_gf2e.size() == 0)
-        std::cout << "ERROR: okvs_gf2e is empty!" << std::endl;
-    GF2EVector dhBitsVals;
-    GF2E eval;
-    eval = 0; 
-    for (int l = 0; l < 1; l++){
-        dhBitsVals.clear(); 
-        auto indices = dict->dec(okvs_key);
-        for (int i = 0; i < okvs_gf2e[indices[0]].size(); i++)
-            dhBitsVals.push_back(okvs_gf2e[indices[0]][i]);
-        for (int i = 1; i < 3; i++){
-            for (int j = 0; j < dhBitsVals.size(); j++){
-                dhBitsVals[j] += okvs_gf2e[indices[i]][j];
-            }
-        }
-        // this is just for simulation purposes, remove later for a single evaluation
-    }
-    RandomOracle sha_fss(sizeof(block));
-    block fss_output;
-    // computing OKVS key
-
-    
-    //computing the starting indices within block to access the shares
-    int int_start_y = 63 - (2 * delta);
-    int int_start_x = 64 + int_start_y;
-    grd_y = grd_y * 2 * delta;
-    grd_x = grd_x * 2 * delta; 
-    //BitVector val_in_bits
-    std::cout << "dhbitsvals size " << dhBitsVals.size() << std::endl;
-    for (int l = 0; l < 1; l++){
-    
-        for (int i = 0; i < 440; i++){ // hardcoding in the size of dhBitsVals
-            vector<byte> valBytes(fieldSizeBytes);
-            BytesFromGF2X(valBytes.data(), rep(dhBitsVals[i]), fieldSizeBytes);
-            BitIterator iter_y(valBytes.data(), int_start_y + (y - grd_y));
-            BitIterator iter_x(valBytes.data(), int_start_x + (x - grd_x));
-            u8 y_share, x_share;
-            y_share = *iter_y;
-            x_share = *iter_x;
-            sha_fss.Update(y_share);
-            sha_fss.Update(x_share);
-        }
-        sha_fss.Final(fss_output);
-        sha_fss.Reset();
-    }
-    //std::cout << "Eval for points " << fss_output << std::endl;
-}
-
+/*
 void batchFssEval(vector<uint64_t> x_coord, vector<uint64_t> y_coord, vector<osuCrypto::block> okvs, uint64_t delta, uint64_t hashSize){
     uint64_t len_sqr = 2* delta;
     uint64_t grd_x, grd_y, x, y; 
@@ -493,7 +583,6 @@ void batchFssEval(vector<uint64_t> x_coord, vector<uint64_t> y_coord, vector<osu
     }
 }
 
-/*
 void FssShare_Enumerate(uint64_t delta, int nSquares, vector<vector<block>> &okvs0, vector<vector<block>> &okvs1){
 
     //std::cout << "balls are pairwise 3*delta apart " << std::endl;
@@ -603,7 +692,6 @@ void FssShare_Enumerate(uint64_t delta, int nSquares, vector<vector<block>> &okv
     //testing SHA
     
 } 
-
 
 void OkvsEncode(std::vector<uint64_t> setKeys, const std::vector<array<osuCrypto::block, 2>> setValues0, std::vector<array<osuCrypto::block, 12>>& okvs0, uint64_t fieldSize)
 {
