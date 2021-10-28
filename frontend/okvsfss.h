@@ -32,6 +32,11 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<osuCrypto::blo
 // # TODO : batch evaluation of points
 void psi_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::block>> okvs, uint64_t delta, uint64_t hashSize);
 
+// Eval for the PSI sender, without using Gf2E data type 
+vector<vector<osuCrypto::BitVector>> blocks_to_bits(vector<vector<osuCrypto::block>> okvs);
+void psiSender_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::BitVector>> okvs, uint64_t delta, uint64_t hashSize);
+
+
 //Eval function by the PSI receiver who computes Eval over entire domain
 void psiRecver_FssEval(uint64_t nSquares, vector<vector<osuCrypto::block>> okvs, uint64_t delta, uint64_t nkeys);
 

@@ -438,7 +438,6 @@ void fuzzyPSI(u64 keysize, u64 y_input_size, u64 x_volume)
     RandomOracle s_sha(sizeof(block));
     
 
-
     // now we recv the hash of the each of the PSI sender's i nputs 
     vector<block> recvHashinputs(r_input_size), recver_hashes, s_hashed_item(fsskeySize*baseCount+1);
     block s_hash; 

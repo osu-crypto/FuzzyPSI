@@ -13,6 +13,7 @@ using namespace osuCrypto;
 #include <cryptoTools/Network/Channel.h>
 #include <cryptoTools/Network/Session.h>
 #include <cryptoTools/Network/IOService.h>
+#include <cryptoTools/Common/BitVector.h>
 #include <numeric>
 #include <cryptoTools/Common/Timer.h>
 
@@ -148,15 +149,15 @@ int main(int argc, char** argv)
 
         //here we are testing a basic share FSS for far apart 
         
-        cout << "OKVS FSS " << std::endl;
+        cout << "OKVS FSS + share + eval by the PSI receiver " << std::endl;
         uint64_t delta = 30;
-        uint64_t nsquares = 2800;
+        uint64_t nsquares = 2000;
         uint64_t nkeys = nsquares * 4;
         vector<block> okvs_fsskey0, okvs_fsskey1;
         far_apart_FssShare(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
         
-        for (int i = 0; i < 500; i++)
-            far_apart_FssEval(86, 25, okvs_fsskey1, delta, nkeys);
+        //for (int i = 0; i < 500; i++)
+           // far_apart_FssEval(86, 25, okvs_fsskey1, delta, nkeys);
             //psi_FssEval(86, 25, okvs_fsskeys, delta, nkeys); 
         
         
@@ -170,14 +171,20 @@ int main(int argc, char** argv)
 
         std::cout << "data size " << test_data.size() << std::endl;
         std::cout << test_data[0].size() << std::endl;
-        auto t1 = high_resolution_clock::now();
         std::cout << "testing psi_FSSEval " << std::endl;
-            psi_FssEval(80, 25, test_data, delta, nkeys);
+        auto t0 = high_resolution_clock::now();
+        psi_FssEval(30, 30, test_data, delta, nkeys);
+        auto t1 = high_resolution_clock::now();
+        vector<vector<BitVector>> test_data_bits = blocks_to_bits(test_data);
+        for (int l = 0; l < 1; l++){
+            psiSender_FssEval(30, 30, test_data_bits, delta, nkeys);
+        }
         auto t2 = high_resolution_clock::now();
+        auto duration0 = duration_cast<milliseconds>(t1-t0).count();
         auto duration = duration_cast<milliseconds>(t2-t1).count();
-        cout << "FSS_Eval simulation operation took in milliseconds: " << duration << endl;
-        //cout << "matrix transpose " << std::endl;
-        //Transpose_View_Test();
+        cout << "FSS_Eval simulation in milliseconds: " << duration0 << "  " << duration << endl;
+       // cout << "matrix transpose " << std::endl;
+       // Transpose_View_Test();
         
         return 0;
     }
