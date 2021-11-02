@@ -151,7 +151,7 @@ int main(int argc, char** argv)
         
         cout << "OKVS FSS + share + eval by the PSI receiver " << std::endl;
         uint64_t delta = 30;
-        uint64_t nsquares = 2000;
+        uint64_t nsquares = 2800;
         uint64_t nkeys = nsquares * 4;
         array<vector<block>, 440> okvs_fsskey0, okvs_fsskey1;
         auto t1 = high_resolution_clock::now();
