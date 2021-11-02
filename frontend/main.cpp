@@ -127,7 +127,7 @@ int main(int argc, char** argv)
     {
         std::cout << "Let's do fuzzy PSI " << std::endl; 
         //fuzzyPSI(11, 2000, 10000000);
-        fuzzyPSI(11, 3, 10);
+        //fuzzyPSI(11, 3, 10);
 
         //here we are testing a basic okvs call 
         /*cout << "Let's do OKVS " << std::endl;
@@ -153,14 +153,13 @@ int main(int argc, char** argv)
         uint64_t delta = 30;
         uint64_t nsquares = 2000;
         uint64_t nkeys = nsquares * 4;
-        vector<block> okvs_fsskey0, okvs_fsskey1;
-        far_apart_FssShare(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
-        
-        //for (int i = 0; i < 500; i++)
-           // far_apart_FssEval(86, 25, okvs_fsskey1, delta, nkeys);
-            //psi_FssEval(86, 25, okvs_fsskeys, delta, nkeys); 
-        
-        
+        array<vector<block>, 440> okvs_fsskey0, okvs_fsskey1;
+        auto t1 = high_resolution_clock::now();
+        psi_FssShareEval(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
+        auto t2 = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "FSS_Eval simulation in milliseconds: " << duration << endl;
+        /*
         vector<vector<block>> test_data;
         PRNG s_prng(toBlock(12));
         for (int i = 0; i < 14560; i++){
@@ -172,9 +171,12 @@ int main(int argc, char** argv)
         std::cout << "data size " << test_data.size() << std::endl;
         std::cout << test_data[0].size() << std::endl;
         std::cout << "testing psi_FSSEval " << std::endl;
-        auto t0 = high_resolution_clock::now();
-        psi_FssEval(30, 30, test_data, delta, nkeys);
-        auto t1 = high_resolution_clock::now();
+        */
+        //auto t0 = high_resolution_clock::now();
+        //psi_FssEval(30, 30, okvs_fsskey0, delta, nkeys);
+        //psi_FssEval(30, 30, okvs_fsskey1, delta, nkeys);
+        //auto t1 = high_resolution_clock::now();
+        /*
         vector<vector<BitVector>> test_data_bits = blocks_to_bits(test_data);
         for (int l = 0; l < 1; l++){
             psiSender_FssEval(30, 30, test_data_bits, delta, nkeys);
@@ -183,6 +185,7 @@ int main(int argc, char** argv)
         auto duration0 = duration_cast<milliseconds>(t1-t0).count();
         auto duration = duration_cast<milliseconds>(t2-t1).count();
         cout << "FSS_Eval simulation in milliseconds: " << duration0 << "  " << duration << endl;
+        */
        // cout << "matrix transpose " << std::endl;
        // Transpose_View_Test();
         

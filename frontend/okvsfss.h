@@ -27,10 +27,12 @@ void far_apart_FssShare(uint64_t delta, int nSquares, std::vector<osuCrypto::blo
 void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<osuCrypto::block> okvs, uint64_t delta, uint64_t hashSize);
 
 // Functions tailored for the PSI protocol 
+// 0. Share + Full domain Eval 
+void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<osuCrypto::block>, 440> &okvs0, array<vector<osuCrypto::block>, 440> &okvs1);
 
 // 1. Eval function by the PSI sender who computes around 1M points
 // # TODO : batch evaluation of points
-void psi_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::block>> okvs, uint64_t delta, uint64_t hashSize);
+void psi_FssEval(uint64_t x_coord, uint64_t y_coord, array<vector<osuCrypto::block>, 440> okvs, uint64_t delta, uint64_t hashSize);
 
 // Eval for the PSI sender, without using Gf2E data type 
 vector<vector<osuCrypto::BitVector>> blocks_to_bits(vector<vector<osuCrypto::block>> okvs);
