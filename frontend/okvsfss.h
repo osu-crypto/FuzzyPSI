@@ -19,6 +19,11 @@
 #include <NTL/GF2X.h>
 #include <NTL/GF2XFactoring.h>
 
+//Transpose
+#include <cryptoTools/Common/MatrixView.h>
+#include <cryptoTools/Common/Matrix.h>
+#include "libOTe/Tools/Tools.h"
+
 //void OKVSDecode(vector<osuCrypto::block> okvs, osuCrypto::block key);
 //for arbitrary length val in terms of blocks
 //for a fixed length block value
@@ -30,17 +35,18 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<osuCrypto::blo
 // 0. Share + Full domain Eval 
 void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<osuCrypto::block>, 440> &okvs0, array<vector<osuCrypto::block>, 440> &okvs1);
 
+// Eval for the PSI sender, without using Gf2E data type 
+vector<vector<osuCrypto::BitVector>> blocks_to_bits(array<vector<osuCrypto::block>, 440> okvs);
+void psiSender_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::BitVector>> okvs, uint64_t delta, uint64_t hashSize);
+
 // 1. Eval function by the PSI sender who computes around 1M points
 // # TODO : batch evaluation of points
 void psi_FssEval(uint64_t x_coord, uint64_t y_coord, array<vector<osuCrypto::block>, 440> okvs, uint64_t delta, uint64_t hashSize);
 
-// Eval for the PSI sender, without using Gf2E data type 
-vector<vector<osuCrypto::BitVector>> blocks_to_bits(vector<vector<osuCrypto::block>> okvs);
-void psiSender_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::BitVector>> okvs, uint64_t delta, uint64_t hashSize);
 
 
 //Eval function by the PSI receiver who computes Eval over entire domain
-void psiRecver_FssEval(uint64_t nSquares, vector<vector<osuCrypto::block>> okvs, uint64_t delta, uint64_t nkeys);
+//void psiRecver_FssEval(uint64_t nSquares, vector<vector<osuCrypto::block>> okvs, uint64_t delta, uint64_t nkeys);
 
 //void batchFssEval(vector<uint64_t> x_coord, vector<uint64_t> y_coord, vector<osuCrypto::block> okvs, uint64_t delta, uint64_t hashSize);
 //void FssShare_Enumerate(uint64_t delta, int nSquares, vector<vector<osuCrypto::block>> &okvs0, vector<vector<osuCrypto::block>> &okvs1);

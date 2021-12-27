@@ -33,7 +33,7 @@ array<vector<block>, 2> s_psi_interval(Fss* f_sender, int n, uint64_t a, uint64_
 }*/
 
 // helper function call for testing transpose, printing matrix
-void printMtx(std::array<block, 2>& data)
+void printMtx(std::array<block, 1>& data)
 	{
 		for (auto& d : data)
 		{
@@ -41,6 +41,65 @@ void printMtx(std::array<block, 2>& data)
 		}
 }
 
+void basic_transpose(){
+
+    PRNG r_prng(toBlock(11));
+    //-------------------basic test---------------------------------
+
+    std::array<block, 128> data, data2, data3;
+    r_prng.get(data.data(), data.size());
+
+    MatrixView<block> dataView(data.begin(), data.end(), 1);
+	MatrixView<block> data2View(data2.begin(), data2.end(), 1);
+    MatrixView<block> data3View(data3.begin(), data3.end(), 1);
+    
+    transpose(dataView, data2View);
+    transpose(data2View, data3View);
+    std::cout << "data before matrix  " << data[5] << std::endl;
+    std::cout << "data after tranpose " << data3[5] << std::endl;
+
+    //------------------next step----------------------------------
+
+    std::array<std::array<block, 4>, 128> t, t3;
+    r_prng.get((u8*)t.data(), sizeof(block) * 4 * 128);
+    std::array<block, 128 * 4> t2;
+
+	MatrixView<block> tView((block*)t.data(), 128, 4);
+	MatrixView<block> t2View((block*)t2.data(), 128 * 4, 1);
+    MatrixView<block> t3View((block*)t3.data(), 128, 4);
+	transpose(tView, t2View);
+    transpose(t2View, t3View);
+
+    // why no index out of bounds question here?
+    std::cout << "transposed matrix " << std::endl;
+    std::cout << "data before " << t[0][0] << std::endl;
+    std::cout << "data after " << t3[0][0] << std::endl;
+
+    //--------transpose needed for PSI-----------------------
+
+    // does not work for 440 and breaking it into blocks, 
+    std::array<block, 440> f, f2, f3;
+    r_prng.get(f.data(), f.size());
+
+    MatrixView<u8> fView((u8*)f.data(), 440, 16);
+	MatrixView<u8> f2View((u8*)f2.data(), 128, 55);
+    MatrixView<u8> f3View((u8*)f3.data(), 440, 16);
+
+    transpose(fView, f2View);
+
+    transpose(f2View, f3View);
+   
+    std::cout << "f2 size " << std::endl;
+    std::cout << "data before " << f[400] << std::endl;
+    std::cout << "data after " << f3[400] << std::endl;
+
+    //--------------let's try with Matrix---------------------------
+    Matrix<u8> in(440, 16);
+	r_prng.get((u8*)in.data(), sizeof(u8) *in.bounds()[0] * in.stride());
+
+	Matrix<u8> out2(128, 55);
+	transpose(in, out2); 
+}
 
 void Transpose_View_Test() 
 {
@@ -48,6 +107,7 @@ void Transpose_View_Test()
         std::array<block, 2> input; 
         prng1.get(input.data(), input.size());
         std::cout << "input " << input[0] << "   " << input[1] << std::endl;
+        
 
 /*
 
@@ -125,7 +185,7 @@ void Transpose_View_Test()
 		{
 			PRNG prng(ZeroBlock);
 
-			//std::array<std::array<std::array<block, 8>, 128>, 2> data;
+			std::array<std::array<std::array<block, 8>, 128>, 2> data;
 
 			Matrix<block> dataView(208, 8);
 			prng.get((u8*)dataView.data(), sizeof(block) *dataView.bounds()[0] * dataView.stride());

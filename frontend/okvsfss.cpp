@@ -68,7 +68,7 @@ void PaxosEncode(std::vector<uint64_t> setKeys, const std::vector<block> setValu
    
 } 
 
-vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uint64_t point_x, bool x, uint64_t point_y, bool y, block rand0, block rand1){
+vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uint64_t point_x, bool x, uint64_t point_y, bool y, block &rand0, block &rand1){
     //std::cout << "Let's write the trivial FSS in 2 Dimensions " << std::endl;
     BitVector FSS_keyzero, FSS_keyone;
     FSS_keyzero.assign(rand0);
@@ -111,77 +111,116 @@ vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y,
     // use span function to block type thing
     block k0(u8_key0[15],u8_key0[14],u8_key0[13],u8_key0[12],u8_key0[11],u8_key0[10],u8_key0[9],u8_key0[8],u8_key0[7],u8_key0[6],u8_key0[5],u8_key0[4],u8_key0[3],u8_key0[2],u8_key0[1],u8_key0[0]);
     block k1(u8_key1[15],u8_key1[14],u8_key1[13],u8_key1[12],u8_key1[11],u8_key1[10],u8_key1[9],u8_key1[8],u8_key1[7],u8_key1[6],u8_key1[5],u8_key1[4],u8_key1[3],u8_key1[2],u8_key1[1],u8_key1[0]);
+    //comment below line later!
+    rand1 = k1;
     vector<block> fss_shares;
     fss_shares.push_back(k0);
     fss_shares.push_back(k1);
     return fss_shares;
 }
 
-void fulldomainEval(unordered_map<block, uint64_t> &recv_hash, uint64_t delta, vector<block> fss_block, uint64_t point_x, bool x, uint64_t point_y, bool y){
+void fulldomainEval(unordered_map<block, uint64_t> &recv_hash, uint64_t delta, vector<block> fss_block, uint64_t grd_x, uint64_t grd_y, 
+uint64_t point_x, bool x, uint64_t point_y, bool y){
+    
+    /*
+    // converts the blocks into vector of bitvector, to access each bit for the SHA
     vector<BitVector> fss_bits;
     BitVector ev; 
     for (int i = 0; i < fss_block.size(); i++){
         ev.assign(fss_block[i]);
         fss_bits.push_back(ev);
-    }    
+    }*/
+
+    array<block, 440> fss_transpose; 
+    // TRANSPOSE
+    MatrixView<u8> bitView((u8*)fss_block.data(), 440, 16);
+	Matrix<u8> blockView(128, 55);
+    transpose(bitView, blockView);
+
     uint64_t int_start = 64 - (2 * delta);
     uint64_t grd_key = 0;
     RandomOracle sha_fss(sizeof(block));
     block hash_output; 
+    uint64_t pos_x = point_x - (grd_x * 2 * delta);
+    uint64_t pos_y = point_y - (grd_y * 2 * delta);
+    uint64_t pt_y = point_y; 
     if(x){
         if(y){
-            for (int i = 64 + int_start + point_x; i < 128; i++){
-                for (int j = int_start + point_y; j < 64; j++){
-                    grd_key = j;
-                    grd_key = j << 32;
-                    grd_key = grd_key + i;
+            for (int i = 64 + int_start + pos_x; i < 128; i++){
+                for (int j = int_start + pos_y; j < 64; j++){
+                    grd_key = pt_y;
+                    grd_key = grd_key << 32;
+                    grd_key = grd_key + point_x;
+                    //std::cout << "point x " << point_x << " point y " << pt_y << std::endl;
+                    pt_y = pt_y + 1; 
+                    sha_fss.Update(blockView[i].data(), 55);
+                    sha_fss.Update(blockView[j].data(), 55);
+                    /*
                     for (int k = 0; k < fss_bits.size(); k++){
                         u8 x_share = fss_bits[k][i];
                         u8 y_share = fss_bits[k][j];
                         sha_fss.Update(x_share);
                         sha_fss.Update(y_share);
                     }
+                    */
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
+                    if (i == (64 + int_start + point_x) && j == (int_start + pt_y)){
+                        std::cout << "hash output " << hash_output << " key " << grd_key << std::endl; 
+                    }
                     grd_key = 0;
                     sha_fss.Reset();
                 }
-            }                
+                point_x = point_x + 1; 
+                pt_y = point_y; 
+            }             
         }
         else {
-            for (int i = 64 + int_start + point_x; i < 128; i++){
-                for (int j = int_start; j < int_start + point_y; j++){
-                    grd_key = j;
-                    grd_key = j << 32;
-                    grd_key = grd_key + i;
+            for (int i = 64 + int_start + pos_x; i < 128; i++){
+                for (int j = int_start + pos_y - 1; j >= int_start; j--){
+                    grd_key = pt_y;
+                    grd_key = grd_key << 32;
+                    grd_key = grd_key + point_x;
+                    //std::cout << "point x " << point_x << " point y " << pt_y << std::endl;
+                    pt_y = pt_y - 1; 
+                    sha_fss.Update(blockView[i].data(), 55);
+                    sha_fss.Update(blockView[j].data(), 55);
+                    /*
                     for (int k = 0; k < fss_bits.size(); k++){
                         u8 x_share = fss_bits[k][i];
                         u8 y_share = fss_bits[k][j];
                         sha_fss.Update(x_share);
                         sha_fss.Update(y_share);
-                    }
+                    }*/
+                    
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
+                    //std::cout << "hash output " << hash_output << " key " << grd_key << std::endl;
                     grd_key = 0;
                     sha_fss.Reset();
                 }
+                point_x = point_x + 1; 
+                pt_y = point_y;
             }
         }
 
     }
     else{
         if (y){
-           for (int i = 64 + int_start; i < 64 + int_start + point_x; i++){
-                for (int j = int_start + point_y; j < 64; j++){
-                    grd_key = j;
-                    grd_key = j << 32;
-                    grd_key = grd_key + i;
+           for (int i = 64 + int_start; i < 64 + int_start + pos_x; i++){
+                for (int j = int_start + pos_y; j < 64; j++){
+                    grd_key = point_y;
+                    grd_key = grd_key << 32;
+                    grd_key = grd_key + point_x;
+                    sha_fss.Update(blockView[i].data(), 55);
+                    sha_fss.Update(blockView[j].data(), 55);
+                    /*
                     for (int k = 0; k < fss_bits.size(); k++){
                         u8 x_share = fss_bits[k][i];
                         u8 y_share = fss_bits[k][j];
                         sha_fss.Update(x_share);
                         sha_fss.Update(y_share);
-                    }
+                    }*/
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
                     grd_key = 0;
@@ -190,17 +229,21 @@ void fulldomainEval(unordered_map<block, uint64_t> &recv_hash, uint64_t delta, v
             } 
         }
         else {
-            for (int i = 64 + int_start; i < 64 + int_start + point_x; i++){
-                for (int j = int_start; j < int_start + point_y; j++){
-                    grd_key = j;
-                    grd_key = j << 32;
-                    grd_key = grd_key + i;
+            for (int i = 64 + int_start; i < 64 + int_start + pos_x; i++){
+                for (int j = int_start; j < int_start + pos_y; j++){
+                    grd_key = point_y;
+                    grd_key = grd_key << 32;
+                    grd_key = grd_key + point_x;
+                    sha_fss.Update(blockView[i].data(), 55);
+                    sha_fss.Update(blockView[j].data(), 55);
+                    /*
                     for (int k = 0; k < fss_bits.size(); k++){
                         u8 x_share = fss_bits[k][i];
                         u8 y_share = fss_bits[k][j];
                         sha_fss.Update(x_share);
                         sha_fss.Update(y_share);
-                    }
+                    }*/
+                    
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
                     grd_key = 0;
@@ -215,16 +258,12 @@ void fulldomainEval(unordered_map<block, uint64_t> &recv_hash, uint64_t delta, v
 // FSS_Share for PSI Receiver 
 // output : gives you 440 instances of okvs0, okvs1 which are inputs to OT messages
 void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &okvs0, array<vector<block>, 440> &okvs1){
-
-    //std::cout << "balls are pairwise 3*delta apart " << std::endl;
-    auto t1 = high_resolution_clock::now();
-
     //Full domain evaluation of the FSS
-    std::unordered_map<block, uint64_t> recv_hash;
 
+    std::unordered_map<block, uint64_t> recv_hash;
     //initialize variables
-    uint64_t len_sqr = 2 * delta;
-    array<vector<block>, 440> okvsVal0, okvsVal1;  // TODO:  change to vec<vec> block
+    uint64_t len_sqr = 2 * delta; 
+    array<vector<block>, 440> okvsVal0, okvsVal1;  /// NOT SURE ABOUT THIS!!!!
     vector<block> shares; // size 2
     vector<uint64_t> okvsKeys; // vals0 -> fsskeys0, vals1 -> fsskeys1
     //below are variables to process a single square 
@@ -244,16 +283,18 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         return_grid(bl_x, bl_y, grd_bl_x, grd_bl_y, len_sqr);
         mprng.get(rand0.data(), rand0.size()); //sample 440 such 
         mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
-        uint64_t pos_bl_x = bl_x - (grd_bl_x * len_sqr);
-        uint64_t pos_bl_y = bl_y - (grd_bl_y * len_sqr);
-        fulldomainEval(recv_hash, delta, rand0, pos_bl_x, true, pos_bl_y, true); // modify the full domain eval to work for vector<block> rand0
+        //uint64_t pos_bl_x = bl_x - (grd_bl_x * len_sqr);
+        //uint64_t pos_bl_y = bl_y - (grd_bl_y * len_sqr);
+        fulldomainEval(recv_hash, delta, rand0, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
         if (rand0.size() != rand1.size())
             std::cout << "diff rand blocks sizes" << std::endl;
         for (int j = 0; j < rand0.size(); j++){
             shares = share_trivialFSS(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true, rand0[j], rand1[j]); // do this 440 times, once for each pair of <rand0, rand1>
-            okvsVal0[j].push_back(shares[0]);
+            // CHECK BELOW 
+            okvsVal0[j].push_back(shares[0]); // this is where the transpose happens
             okvsVal1[j].push_back(shares[1]); // do this step 440 times!
         }
+        //fulldomainEval(test_hash, delta, rand1, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
         grd_key = grd_bl_y;
         grd_key = grd_key << 32;
         grd_key = grd_key + grd_bl_x;
@@ -267,9 +308,9 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         return_grid(tl_x, tl_y, grd_tl_x, grd_tl_y, len_sqr);
         mprng.get(rand0.data(), rand0.size()); //sample 440 such 
         mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
-        uint64_t pos_tl_x = tl_x - (grd_tl_x * len_sqr);
-        uint64_t pos_tl_y = tl_y - (grd_tl_y * len_sqr);
-        fulldomainEval(recv_hash, delta, rand0, pos_tl_x, true, pos_tl_y, false); // modify the full domain eval to work for vector<block> rand0
+        //uint64_t pos_tl_x = tl_x - (grd_tl_x * len_sqr);
+        //uint64_t pos_tl_y = tl_y - (grd_tl_y * len_sqr);
+        fulldomainEval(recv_hash, delta, rand0, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false); // modify the full domain eval to work for vector<block> rand0
         if (rand0.size() != rand1.size())
             std::cout << "diff rand blocks sizes" << std::endl;
         for (int j = 0; j < rand0.size(); j++){
@@ -277,6 +318,7 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
             okvsVal0[j].push_back(shares[0]);
             okvsVal1[j].push_back(shares[1]);
         }
+        //fulldomainEval(test_hash, delta, rand1, pos_tl_x, true, pos_tl_y, false);
         grd_key = grd_tl_y;
         grd_key = grd_key << 32;
         grd_key = grd_key + grd_tl_x;
@@ -291,7 +333,7 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
         uint64_t pos_br_x = br_x - (grd_br_x * len_sqr);
         uint64_t pos_br_y = br_y - (grd_br_y * len_sqr);
-        fulldomainEval(recv_hash, delta, rand0, pos_br_x, false, pos_br_y, true);
+        //fulldomainEval(recv_hash, delta, rand0, pos_br_x, false, pos_br_y, true);
         if (rand0.size() != rand1.size())
             std::cout << "diff rand blocks sizes" << std::endl;
         for (int j = 0; j < rand0.size(); j++){
@@ -313,7 +355,7 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
         uint64_t pos_tr_x = tr_x - (grd_tr_x * len_sqr);
         uint64_t pos_tr_y = tr_y - (grd_tr_y * len_sqr);
-        fulldomainEval(recv_hash, delta, rand0, pos_tr_x, false, pos_tr_y, false);
+        //fulldomainEval(recv_hash, delta, rand0, pos_tr_x, false, pos_tr_y, false);
         if (rand0.size() != rand1.size())
             std::cout << "diff rand blocks sizes" << std::endl;
         for (int j = 0; j < rand0.size(); j++){
@@ -327,15 +369,84 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         okvsKeys.push_back(grd_key);
         grd_key = 0;
         
-
     }
     
     for (int i = 0; i < okvsVal0.size(); i++){
         PaxosEncode(okvsKeys, okvsVal0[i], okvsVal1[i], okvs0[i], okvs1[i], 128);
     }
+    //Need to modify something here!
+    // Something about how we send the OT messages
     
 }
 
+//FSS_Eval for the PSI Sender, #baseOT OKVS instances, returns the SHA evaluation, without using GF2E
+void psiSender_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::BitVector>> okvs, uint64_t delta, uint64_t hashSize){ 
+    
+    uint64_t nbaseOT = 2; // this will be 440, can be sent a parameter
+    uint64_t len_sqr = 2 * delta;
+    // setting OKVS parameters
+    int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
+    double c1 = 2.4; // for okvs
+
+    uint64_t okvs_key, yx_share, grd_x, grd_y, x, y; 
+    x = x_coord;
+    y = y_coord;
+    return_grid(x, y, grd_x, grd_y, len_sqr);
+    okvs_key = grd_y;
+    okvs_key = okvs_key << 32;
+    okvs_key = okvs_key + grd_x;
+    std::cout << "OKVS key " << okvs_key << std::endl;
+    
+    // start by learning which indices we need for a key
+    // decoding from checkoutput() OKVS
+    //initialize just to be able to dec() -- below 3 calls only set up the hash functions
+    //auto t1 = high_resolution_clock::now();
+
+    ObliviousDictionary * dict = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
+    dict->init();
+    //auto t2 = high_resolution_clock::now();
+    //auto duration = duration_cast<milliseconds>(t2-t1).count();
+    //cout << "okvs initialization time: " << duration << endl;
+    std::cout << "OKVS size " << okvs.size() << std::endl;
+    vector<BitVector> okvsbits;
+        //BitVector eval;
+    auto indices = dict->dec(okvs_key);
+    std::cout << "INDICES " << indices[0] << " " << indices[1] << " " << indices[2] << std::endl;
+    //std::cout << "each vector size " << okvs[indices[0]].size() << " " << okvs[indices[1]].size() << " " << okvs[indices[2]].size() << std::endl;
+    for (int i = 0; i < okvs.size(); i++)
+        okvsbits.push_back(okvs[i][indices[0]]);
+    //okvsbits = okvs[indices[0]];
+    
+    for (int j = 1; j < 3; j++){
+        for (int i = 0; i < okvs.size(); i++){
+            okvsbits[i] = okvsbits[i] ^ okvs[i][indices[j]];
+        }
+    }
+    std::cout << "# of OKVS " << okvsbits.size() << std::endl;
+
+    RandomOracle sha_fss(sizeof(block));
+    block fss_output;
+
+    // computing OKVS key
+    //computing the starting indices within block to access the shares
+    int int_start_y = 63 - (2 * delta);
+    int int_start_x = 64 + int_start_y;
+    grd_y = grd_y * 2 * delta;
+    grd_x = grd_x * 2 * delta; 
+    std::cout << "y " << int_start_y + (y - grd_y) << std::endl;
+    std::cout << "x " << int_start_x + (x - grd_x) << std::endl;
+    for (int i = 0; i < okvsbits.size(); i++){ // hardcoding in the size of okvsbits = # of baseOt
+
+        u8 y_share = okvsbits[i][int_start_y + (y - grd_y)];
+        u8 x_share = okvsbits[i][int_start_x + (x - grd_x)];
+        sha_fss.Update(x_share);
+        sha_fss.Update(y_share);
+    }
+    sha_fss.Final(fss_output);
+       //sha_fss.Reset();
+    
+    std::cout << "Eval for points " << fss_output << std::endl;
+}
 
 //FSS_Eval for PSI Sender, #baseOT OKVS instances, returns the SHA evaluation    
 void psi_FssEval(uint64_t x_coord, uint64_t y_coord, array<vector<osuCrypto::block>, 440> okvs, uint64_t delta, uint64_t hashSize){ 
@@ -428,7 +539,7 @@ void psi_FssEval(uint64_t x_coord, uint64_t y_coord, array<vector<osuCrypto::blo
     std::cout << "Eval for points " << fss_output << std::endl;
 }
 
-vector<vector<BitVector>> blocks_to_bits(vector<vector<block>> okvs){
+vector<vector<BitVector>> blocks_to_bits(array<vector<block>, 440> okvs){
     vector<vector<BitVector>> bitVector_okvs;
     for (int k = 0; k < okvs.size(); k++) {
         ///vector<byte> okvs_idx;
@@ -443,75 +554,6 @@ vector<vector<BitVector>> blocks_to_bits(vector<vector<block>> okvs){
     return bitVector_okvs;
 }
 
-//FSS_Eval for the PSI Sender, #baseOT OKVS instances, returns the SHA evaluation, without using GF2E
-void psiSender_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::BitVector>> okvs, uint64_t delta, uint64_t hashSize){ 
-    
-    uint64_t nbaseOT = 2; // this will be 440, can be sent a parameter
-    uint64_t len_sqr = 2 * delta;
-    // setting OKVS parameters
-    int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
-    double c1 = 1.3; // for okvs
-
-    uint64_t okvs_key, yx_share, grd_x, grd_y, x, y; 
-    x = x_coord;
-    y = y_coord;
-    return_grid(x, y, grd_x, grd_y, len_sqr);
-    okvs_key = grd_y;
-    okvs_key = okvs_key << 32;
-    okvs_key = okvs_key + grd_x;
-    
-    //cout << " okvs size " << " " << bitVector_okvs.size() << "  " << bitVector_okvs[0].size()<< std::endl;
-
-    // start by learning which indices we need for a key
-    // decoding from checkoutput() OKVS
-    //initialize just to be able to dec() -- below 3 calls only set up the hash functions
-    //auto t1 = high_resolution_clock::now();
-
-    ObliviousDictionary * dict = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
-    dict->init();
-    //auto t2 = high_resolution_clock::now();
-    //auto duration = duration_cast<milliseconds>(t2-t1).count();
-    //cout << "okvs initialization time: " << duration << endl;
-
-    vector<BitVector> okvsbits;
-        //BitVector eval;
-    auto indices = dict->dec(okvs_key);
-    okvsbits = okvs[indices[0]];
-    //for (int i = 0; i < okvs[indices[0]].size(); i++){
-        //eval.assign(okvs[indices[0]][i]);
-      //  okvsbits.pu
-    //}
-            
-    for (int i = 1; i < 3; i++){
-        for (int j = 0; j < okvs[indices[i]].size(); j++){
-            //eval.assign(okvs[indices[i]][j]);
-            okvsbits[j] = okvsbits[j] ^ okvs[indices[i]][j];
-        }
-    }
-        
-
-    RandomOracle sha_fss(sizeof(block));
-    block fss_output;
-    // computing OKVS key
-
-    //computing the starting indices within block to access the shares
-    int int_start_y = 63 - (2 * delta);
-    int int_start_x = 64 + int_start_y;
-    grd_y = grd_y * 2 * delta;
-    grd_x = grd_x * 2 * delta; 
-    for (int i = 0; i < 440; i++){ // hardcoding in the size of okvsbits = # of baseOt
-        //BitIterator iter_y(valBytes.data(), int_start_y + (y - grd_y));
-        //BitIterator iter_x(valBytes.data(), int_start_x + (x - grd_x));
-        u8 y_share = okvsbits[i][int_start_y + (y - grd_y)];
-        u8 x_share = okvsbits[i][int_start_x + (x - grd_x)];
-        sha_fss.Update(y_share);
-        sha_fss.Update(x_share);
-    }
-    sha_fss.Final(fss_output);
-       //sha_fss.Reset();
-    
-    std::cout << "Eval for points " << fss_output << std::endl;
-}
 
 // FSS_Eval optimized for Full Domain Evalutation by the PSI Receiver 
 /*

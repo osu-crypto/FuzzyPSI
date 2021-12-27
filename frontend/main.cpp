@@ -158,36 +158,25 @@ int main(int argc, char** argv)
         psi_FssShareEval(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
         auto t2 = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(t2-t1).count();
+        
         cout << "FSS_Eval simulation in milliseconds: " << duration << endl;
-        /*
-        vector<vector<block>> test_data;
-        PRNG s_prng(toBlock(12));
-        for (int i = 0; i < 14560; i++){
-            vector<block> sample(440); 
-            s_prng.get(sample.data(), sample.size());
-            test_data.push_back(sample);
-        }
+        
 
-        std::cout << "data size " << test_data.size() << std::endl;
-        std::cout << test_data[0].size() << std::endl;
-        std::cout << "testing psi_FSSEval " << std::endl;
-        */
-        //auto t0 = high_resolution_clock::now();
+
+        
         //psi_FssEval(30, 30, okvs_fsskey0, delta, nkeys);
         //psi_FssEval(30, 30, okvs_fsskey1, delta, nkeys);
-        //auto t1 = high_resolution_clock::now();
-        /*
-        vector<vector<BitVector>> test_data_bits = blocks_to_bits(test_data);
-        for (int l = 0; l < 1; l++){
-            psiSender_FssEval(30, 30, test_data_bits, delta, nkeys);
-        }
-        auto t2 = high_resolution_clock::now();
-        auto duration0 = duration_cast<milliseconds>(t1-t0).count();
-        auto duration = duration_cast<milliseconds>(t2-t1).count();
-        cout << "FSS_Eval simulation in milliseconds: " << duration0 << "  " << duration << endl;
-        */
-       // cout << "matrix transpose " << std::endl;
-       // Transpose_View_Test();
+      
+        
+        //vector<vector<BitVector>> okvs0_bits = blocks_to_bits(okvs_fsskey0);
+        //vector<vector<BitVector>> okvs1_bits = blocks_to_bits(okvs_fsskey1); // check if transpose can be done here 
+        // check peter's test func
+        // NEED TO TRANSPOSE
+        //psiSender_FssEval(70, 70, okvs0_bits, delta, nkeys);
+        //psiSender_FssEval(70, 70, okvs1_bits, delta, nkeys);
+        
+         cout << "TESTING MATRIX STUFF " << std::endl;
+         basic_transpose();
         
         return 0;
     }
