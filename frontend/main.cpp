@@ -150,8 +150,8 @@ int main(int argc, char** argv)
         //here we are testing a basic share FSS for far apart 
         
         cout << "OKVS FSS + share + eval by the PSI receiver " << std::endl;
-        uint64_t delta = 30;
-        uint64_t nsquares = 2800;
+        uint64_t delta = 10;
+        uint64_t nsquares = 1;
         uint64_t nkeys = nsquares * 4;
         array<vector<block>, 440> okvs_fsskey0, okvs_fsskey1;
         auto t1 = high_resolution_clock::now();
@@ -175,8 +175,17 @@ int main(int argc, char** argv)
         //psiSender_FssEval(70, 70, okvs0_bits, delta, nkeys);
         //psiSender_FssEval(70, 70, okvs1_bits, delta, nkeys);
         
-         cout << "TESTING MATRIX STUFF " << std::endl;
+         cout << "TESTING PSI STUFF " << std::endl;
          basic_transpose();
+
+         // 1. figure out the parameters of OKVS, OT messages size, check run time of 440 instances of OT 
+         // 2. try a basic transpose for a matrix of arbitrary size - DONE
+         // 3. Share+Eval - go through every point in the square and check if the hash values match
+         // 4. Share+Eval - write code outside full domain eval and compute the hash outside the square for some arbit points
+         // 5. PSI_sender - (write the code + no need to test it now) -> Transpose, adding over paxos indices and SHA calls  
+         // 6. Share + Eval - after the PaxosEncode() -> write the transpose after the encode and compute the right format OT messages
+         
+
         
         return 0;
     }

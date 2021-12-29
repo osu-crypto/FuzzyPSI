@@ -55,8 +55,9 @@ void basic_transpose(){
     
     transpose(dataView, data2View);
     transpose(data2View, data3View);
-    std::cout << "data before matrix  " << data[5] << std::endl;
-    std::cout << "data after tranpose " << data3[5] << std::endl;
+
+    /*std::cout << "data before matrix  " << data[5] << std::endl;
+    std::cout << "data after tranpose " << data3[5] << std::endl;*/
 
     //------------------next step----------------------------------
 
@@ -71,9 +72,9 @@ void basic_transpose(){
     transpose(t2View, t3View);
 
     // why no index out of bounds question here?
-    std::cout << "transposed matrix " << std::endl;
+    /*std::cout << "transposed matrix " << std::endl;
     std::cout << "data before " << t[0][0] << std::endl;
-    std::cout << "data after " << t3[0][0] << std::endl;
+    std::cout << "data after " << t3[0][0] << std::endl;*/
 
     //--------transpose needed for PSI-----------------------
 
@@ -82,23 +83,31 @@ void basic_transpose(){
     r_prng.get(f.data(), f.size());
 
     MatrixView<u8> fView((u8*)f.data(), 440, 16);
-	MatrixView<u8> f2View((u8*)f2.data(), 128, 55);
-    MatrixView<u8> f3View((u8*)f3.data(), 440, 16);
+	Matrix<u8> f2View(128, 55);
+    Matrix<u8> f3View(440, 16);
 
     transpose(fView, f2View);
 
     transpose(f2View, f3View);
-   
-    std::cout << "f2 size " << std::endl;
+    /*
+    std::cout << "f2 size " << f2View.bounds()[0] << "  " << f2View.stride() << "  " << int(sizeof(f2View.data(1))) << std::endl;
+    std::cout << "f2 accessing values " << std::endl;
     std::cout << "data before " << f[400] << std::endl;
-    std::cout << "data after " << f3[400] << std::endl;
+    std::cout << "data after " << f3[400] << std::endl;*/
 
     //--------------let's try with Matrix---------------------------
-    Matrix<u8> in(440, 16);
-	r_prng.get((u8*)in.data(), sizeof(u8) *in.bounds()[0] * in.stride());
+    //arbitrary dimensions
 
-	Matrix<u8> out2(128, 55);
-	transpose(in, out2); 
+    Matrix<u8> in(165, 55);
+	r_prng.get((u8*)in.data(), sizeof(u8) *in.bounds()[0] * in.stride());
+    //std::cout << "Matrix dimensions " << in.rows() << " times " << in.cols() << std::endl;
+    //std::cout << "initial matrix " << int(in(10, 10)) << " " << int(in(101, 50)) << " " << int(in(161, 54)) << std::endl;
+	Matrix<u8> out(440, 21);
+	transpose(in, out); 
+    Matrix<u8> out2(165, 55);
+    transpose(out, out2);
+    //std::cout << "transpose matrix " << int(out2(10, 10)) << " " << int(out2(101, 50)) << " " << int(out2(161, 54)) << std::endl;
+
 }
 
 void Transpose_View_Test() 
