@@ -152,7 +152,7 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
                     grd_key = pt_y;
                     grd_key = grd_key << 32;
                     grd_key = grd_key + point_x;
-                    //std::cout << "point x " << point_x << " point y " << pt_y << " key " << grd_key << std::endl;
+                    //std::cout << "point x " << point_x << " point y " << pt_y << std::endl;
                     pt_y = pt_y + 1; 
                     sha_fss.Update(&blockView(i, 0), 55);
                     sha_fss.Update(&blockView(j, 0), 55);
@@ -167,7 +167,7 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
                     */
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
-                    //std::cout << " key " << grd_key << " hash output " << hash_output <<  std::endl; 
+                    //std::cout << " i " << i << " j " << j <<  std::endl; 
                     grd_key = 0;
                     sha_fss.Reset();
                 }
@@ -182,6 +182,7 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
                     grd_key = grd_key << 32;
                     grd_key = grd_key + point_x;
                     //std::cout << "point x " << point_x << " point y " << pt_y << std::endl;
+                    //std::cout << " i " << i << " j " << j <<  std::endl; 
                     pt_y = pt_y - 1; 
                     //std::cout << "blockview[0] size " << sizeof(blockView[0].data()) << std::endl;
                     sha_fss.Update(&blockView(i, 0), 55);
@@ -210,12 +211,13 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
     }
     else{
         if (y){
-           for (int i = 64 + int_start; i <= 64 + int_start + pos_x; i++){
+           for (int i = 64 + int_start + pos_x; i >= 64 + int_start; i--){
                 for (int j = int_start + pos_y; j < 64; j++){
                     grd_key = pt_y;
                     grd_key = grd_key << 32;
                     grd_key = grd_key + point_x;
                     //std::cout << "point x " << point_x << " point y " << pt_y << std::endl;
+                    //std::cout << " i " << i << " j " << j <<  std::endl; 
                     pt_y = pt_y + 1;
                     sha_fss.Update(&blockView(i, 0), 55);
                     sha_fss.Update(&blockView(j, 0), 55);
@@ -239,12 +241,13 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
             } 
         }
         else {
-            for (int i = 64 + int_start; i <= 64 + int_start + pos_x; i++){
-                for (int j = int_start; j <= int_start + pos_y; j++){
+            for (int i = 64 + int_start + pos_x; i >= 64 + int_start; i--){
+                for (int j = int_start + pos_y; j >= int_start; j--){
                     grd_key = pt_y;
                     grd_key = grd_key << 32;
                     grd_key = grd_key + point_x;
                     //std::cout << "point x " << point_x << " point y " << pt_y << std::endl;
+                    //std::cout << " i " << i << " j " << j <<  std::endl; 
                     pt_y = pt_y - 1;
                     sha_fss.Update(&blockView(i, 0), 55);
                     sha_fss.Update(&blockView(j, 0), 55);
@@ -389,6 +392,7 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
     for (int i = 0; i < okvsVal0.size(); i++){
         PaxosEncode(okvsKeys, okvsVal0[i], okvsVal1[i], okvs0[i], okvs1[i], 128);
     }
+
     //Need to modify something here!
     // Something about how we send the OT messages
     
@@ -401,7 +405,7 @@ void psiSender_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCryp
     uint64_t len_sqr = 2 * delta;
     // setting OKVS parameters
     int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
-    double c1 = 2.4; // for okvs
+    double c1 = 1.3; // for okvs
 
     uint64_t okvs_key, yx_share, grd_x, grd_y, x, y; 
     x = x_coord;
