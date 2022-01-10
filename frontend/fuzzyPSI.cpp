@@ -108,6 +108,23 @@ void basic_transpose(){
     transpose(out, out2);
     //std::cout << "transpose matrix " << int(out2(10, 10)) << " " << int(out2(101, 50)) << " " << int(out2(161, 54)) << std::endl;
 
+    //------------- Matrix transpose of blocks ---------------------------
+    // not working, try to do it in terms of u8!!!
+
+    std::array<std::array<block, 7>, 512> b;
+    r_prng.get(b.data(), b.size());
+    std::cout << "can we sample blocks correctly " << b.size() << " times " << b[0].size() << std::endl;
+    std::cout << b[12][6] << std::endl;
+
+    MatrixView<block> bView((block*)b.data(), 512, 7);
+	Matrix<block> b2View(896, 4);
+    transpose(bView, b2View);
+    Matrix<block> b3View(512, 7);
+    transpose(b2View, b3View);
+    std::cout << "data before " << bView(12, 6) << std::endl;
+    std::cout << "data before " << b3View(12, 6) << std::endl;
+    // NEED TO GET THIS BACK INTO AN ARRAY from matrixView 
+
 }
 
 void Transpose_View_Test() 

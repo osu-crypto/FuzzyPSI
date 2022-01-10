@@ -89,7 +89,7 @@ vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y,
     }
     else { // fill left 
      uint64_t end_point_x = int_start + (point_x - grid_x); 
-        for (int i = int_start; i < end_point_x; i++)
+        for (int i = int_start; i <= end_point_x; i++)
             FSS_keyone[64 + i] = FSS_keyzero[64 + i];    
     }
 
@@ -111,6 +111,9 @@ vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y,
     // use span function to block type thing
     block k0(u8_key0[15],u8_key0[14],u8_key0[13],u8_key0[12],u8_key0[11],u8_key0[10],u8_key0[9],u8_key0[8],u8_key0[7],u8_key0[6],u8_key0[5],u8_key0[4],u8_key0[3],u8_key0[2],u8_key0[1],u8_key0[0]);
     block k1(u8_key1[15],u8_key1[14],u8_key1[13],u8_key1[12],u8_key1[11],u8_key1[10],u8_key1[9],u8_key1[8],u8_key1[7],u8_key1[6],u8_key1[5],u8_key1[4],u8_key1[3],u8_key1[2],u8_key1[1],u8_key1[0]);
+    //block k00 = FSS_keyzero.getSpan<block>();
+    //block k11 = FSS_keyone.getSpan<block>();
+
     //comment below line later!
     rand1 = k1;
     vector<block> fss_shares;
@@ -118,6 +121,58 @@ vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y,
     fss_shares.push_back(k1);
     return fss_shares;
 }
+
+/*
+vector<block> share_weakFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uint64_t point_x, bool x, uint64_t point_y, bool y, vector<block> rand0, vector<block> &rand1){
+    // UMM just sample random bitvector and then send it back na, what is this circus? 
+    vector<BitVector> bRand0, bRand1;
+    BitVector FSS_keyzero, FSS_keyone;
+    if (rand0.size() != 440 && rand1.size() != 440)
+        std::cout << "rand0 or rand1 are not the right size" << std::endl;
+    for (int i = 0; i < 440; i++){
+        FSS_keyzero.assign(rand0);
+        bRand0.append(FSS_keyzero);
+        FSS_keyone.assign(rand1);
+        bRand1.append(FSS_keyone);
+    }
+
+    //(grid_x, grid_y) = grid label
+    grid_x = grid_x * (2 * delta);
+    grid_y = grid_y * (2 * delta);
+    uint64_t int_start = 64 - (2 * delta);
+ 
+    //Let's process the X-coord which is the second half of the block, access block.mData[0]
+    // in a block(y, x)
+
+    if (x) { // fill right
+    uint64_t start_point_x = int_start + (point_x - grid_x); 
+    for (int i = start_point_x + 64; i < 128; i++)
+        for (j = 0; j < bRand0.size(); j++)
+            bRand1[j][i] = bRand0[j][i];
+    }
+    else { // fill left 
+     uint64_t end_point_x = int_start + (point_x - grid_x); 
+        for (int i = int_start; i <= end_point_x; i++)
+            for (int j = 0; j < 440; j++)
+                bRand1[j][64 + i] = bRand0[j][64 + i];    
+    }
+
+    if (y) { // fill top
+    uint64_t start_point_y = int_start + (point_y - grid_y); 
+    for (int i = start_point_y; i < 64; i++)
+        for (j = 0; j < bRand0.size(); j++)
+            bRand1[j][i] = bRand0[j][i];
+    }
+    else { // fill bottom
+     uint64_t end_point_y = int_start + (point_y - grid_y); 
+        for (int i = int_start; i <= end_point_y; i++)
+            for (j = 0; j < bRand0.size(); j++)
+            bRand1[j][i] = bRand0[j][i];
+    }
+
+    // STILL NEED TO ADD THE LAST FEW STEPS, better way to convert BitVector to Block
+
+}*/
 
 void fulldomainEval(unordered_map<block, uint64_t> &recv_hash, uint64_t delta, vector<block> fss_block, uint64_t grd_x, uint64_t grd_y, 
 uint64_t point_x, bool x, uint64_t point_y, bool y){
@@ -140,7 +195,7 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
     uint64_t int_start = 64 - (2 * delta);
     uint64_t grd_key = 0;
     RandomOracle sha_fss(sizeof(block));
-    RandomOracle sha_fss2(sizeof(block));
+    //RandomOracle sha_fss2(sizeof(block));
     block hash_output, hash_output2; 
     uint64_t pos_x = point_x - (grd_x * 2 * delta);
     uint64_t pos_y = point_y - (grd_y * 2 * delta);
@@ -285,8 +340,8 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
                     
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
-                    std::cout << "i " << i << "j " << j << " key " << grd_key << " hash " << hash_output << std::endl;
-                    /*if (i == 112 && j > 49){
+                    //std::cout << "i " << i << "j " << j << " key " << grd_key << " hash " << hash_output << std::endl;
+                    /*if (i == 117){
                         std::cout << int(blockView(i, 50)) << " " << int(blockView(i, 40)) << " " << int(blockView(j, 20)) << std::endl;
                         std::cout << "i " << i << "j " << j << std::endl;
                         std::cout << "key " << grd_key << std::endl;
@@ -342,13 +397,8 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
             // CHECK BELOW 
             okvsVal0[j].push_back(shares[0]); // this is where the transpose happens
             okvsVal1[j].push_back(shares[1]); // do this step 440 times!
-            //std::cout << "rand0 + rand1 " << (rand0[j] + rand1[j]) << std::endl;
-            //BitVector a1, a2, a3; 
-            //a1.assign(rand0[j]);
-            //a2.assign(rand1[j]);
-            //std::cout << (a1 ^ a2) << std::endl;
         }
-        //fulldomainEval(recv_hash, delta, rand1, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
+        fulldomainEval(recv_hash, delta, rand1, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
         grd_key = grd_bl_y;
         grd_key = grd_key << 32;
         grd_key = grd_key + grd_bl_x;
@@ -416,7 +466,7 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
             okvsVal0[j].push_back(shares[0]);
             okvsVal1[j].push_back(shares[1]);
         }
-        fulldomainEval(recv_hash, delta, rand1, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false);
+        //fulldomainEval(recv_hash, delta, rand1, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false);
         grd_key = grd_tr_y;
         grd_key = grd_key << 32;
         grd_key = grd_key + grd_tr_x;
@@ -424,12 +474,11 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         grd_key = 0;
         
     }
-    
+    // 1. add a transpose here for the okvsVals and the compute the PaXosEncode
     for (int i = 0; i < okvsVal0.size(); i++){
         PaxosEncode(okvsKeys, okvsVal0[i], okvsVal1[i], okvs0[i], okvs1[i], 128);
     }
-
-    //Need to modify something here!
+    //  2. Need to modify something here!
     // Something about how we send the OT messages
     
 }
