@@ -27,7 +27,7 @@
 using namespace osuCrypto; 
 
 void Transpose_View_Test();
-//void fuzzyPSI_fast(u64 keysize, u64 y_size, u64 x_volume); 
+//void fssPSI(uint64_t sender_inputs); 
 void fuzzyPSI(u64 keysize, u64 y_size, u64 x_volume); 
 void fuzzyPSI_int(u64 keysize); 
 void basic_transpose();

@@ -4,33 +4,130 @@
 using namespace osuCrypto;
 //using namespace cryptoTools;
 
-/* experiment, issue is reusing te pointers, fix later
-array<vector<block>, 2> s_psi_interval(Fss* f_sender, int n, uint64_t a, uint64_t b){
+/* PSI protocol skeleton 
 
-    array<vector<block>, 2> return_blks;
-    vector<block> int_keys0, int_keys1;
-    block * key_in_blks; 
-    //pair of key
-    ServerKeyLt l_lt_k0, l_lt_k1, r_lt_k0, r_lt_k1;
-    for (int i = 0; i < n; i++){
-        generateTreeLt(f_sender, &r_lt_k0, &r_lt_k1, b, 1);  
-        key_in_blks = reinterpret_cast<block *>(&r_lt_k1); 
-        for (int i = 0; i < 11; i++){
-            int_keys1.push_back(key_in_blks[i]);
-            std::cout << "one keys  " << key_in_blks[i] << std::endl;
+void fssPSI(vector<uint64_t> sender_inputs)
+{
+
+    // Setup networking. Setting up channels for PSI, sender and recver according to OT not PSI 
+    IOService ios;
+    Channel senderChl = Session(ios, "localhost:1212", SessionMode::Server).addChannel();
+    Channel recverChl = Session(ios, "localhost:1212", SessionMode::Client).addChannel();
+
+    uint64_t baseCount = 440; // for  BFSS - baseCount = hamming distance
+    
+    std::vector<osuCrypto::block> baseRecv(baseCount);
+    BitVector choices(baseCount);
+
+    // **PSI sender** operates out of the receiver thread
+    auto recverThread = std::thread([&]() {
+
+        // sampling the l - bit vector or choices as the OT receiver 
+        PRNG r_prng(toBlock(14));
+        choices.randomize(r_prng); 
+        MasnyRindal recver;
+        
+        // Receive the messages
+        recver.receiveChosen(choices, baseRecv, r_prng, recverChl);
+        
+        // basically receiver gets ciphertexts of form [# base OT] * [enc(k1, m1), enc(k2, m2)] here
+        std::vector<block> recv_ciphertxt0, recv_ciphertxt1, fsskeysRecv;
+        block recv_ciphertxt;
+        recverChl.recv(recv_ciphertxt0);
+        recverChl.recv(recv_ciphertxt1);
+
+        //now we use the baseRecv as decryption key and choices 
+        // #1 TO DO: not changing the encryption and decryption of OT messages
+        //           if this is slow, we can change it to ecbEncBlocks() and ...
+        details::AESTypes::Portable;
+        AESDec aeskey;
+            for (int i = 0; i < baseCount; i++){
+                aeskey.setKey(baseRecv[i]);
+                if (choices[i] == 0){
+                    for (int j = 0; j < fsskeySize; j++){
+                        recv_ciphertxt = aeskey.ecbDecBlock(recv_ciphertxt0[(i*fsskeySize) + j]);
+                        fsskeysRecv.push_back(recv_ciphertxt);
+                    }  
+                }
+                else{ 
+                    for (int j = 0; j < fsskeySize; j++){
+                        recv_ciphertxt = aeskey.ecbDecBlock(recv_ciphertxt1[(i*fsskeySize) + j]);
+                        fsskeysRecv.push_back(recv_ciphertxt);
+                    }
+                }
+
+            }
+       
+
+        // #2 TO DO: modify 'fsskeysRecv' into a matrix form 
+        // #3 TO DO: add a transpose to 'fsskeysRecv'        
+        for (uint64_t r = 0; r < sender_inputs.size(); r++){
+            // #4 TO DO: call the psi_SenderFSSEval() with 
+            //           fsskeysRecv_transpose 
+            // Note: it should suffice to send only the hash values right? 
+            hashed_inputs.push_back(hash);
         }
-        key_in_blks = reinterpret_cast<block *>(&r_lt_k0); 
-        for (int i = 0; i < 11; i++){
-            int_keys0.push_back(key_in_blks[i]);
-            std::cout << "zero keys  " << key_in_blks[i] << std::endl;
+        //sender sending hash of FSS eval of his inputs
+        recverChl.asyncSend(hashed_inputs); 
+       
+       
+        });
+
+    // *PSI receiver*
+    std::vector<block> recvd_outputs;
+    
+    //initializing *OT sender*
+    PRNG s_prng(toBlock(12));
+    MasnyRindal sender;
+    std::vector<std::array<osuCrypto::block, 2>> baseSend(baseCount);
+    s_prng.get(baseSend.data(), baseSend.size());
+    
+    // Send the messages, that is, short keys (k0, k1) that will encrypt the actual FSS keys (FSSkey0, FSSkey1)
+    sender.sendChosen(baseSend, s_prng, senderChl);
+   
+    // #5 TO DO: add FSS_share+eval here
+    //           save the full domain eval in recv_hash
+    //           return the fsskeys0, fsskeys1 
+
+    // #6 TO DO: below we encrypt the okvs messages 
+   
+    AES aeskey0, aeskey1;
+    block ciphertxt0, ciphertxt1;  
+    //encrypt the fsskeys using baseSend(encryption keys)
+    for (int i = 0; i < baseCount; i++){
+        aeskey0.setKey(baseSend[i][0]);
+        aeskey1.setKey(baseSend[i][1]);
+        for (int j = 0; j < fsskeySize; j++){
+            aeskey0.ecbEncBlock(fsskeys0[(i*fsskeySize) + j], ciphertxt0);
+            aeskey1.ecbEncBlock(fsskeys1[(i*fsskeySize) + j], ciphertxt1); 
+            keys_ciphertxt0.push_back(ciphertxt0);
+            keys_ciphertxt1.push_back(ciphertxt1);
         }
     }
-    return_blks[0] = int_keys0;
-    return_blks[1] = int_keys1;
-    return return_blks; 
-
+    senderChl.asyncSend(keys_ciphertxt0);
+    senderChl.asyncSend(keys_ciphertxt1);
     
-}*/
+
+    // now we recv the hash of the each of the PSI sender's inputs 
+    vector<block> recvHashinputs(r_input_size), recver_hashes;
+    senderChl.recv(recvHashinputs);
+    recverThread.join();
+   
+    vector<uint64_t> psi_outputs;
+    for (uint64_t i = 0; i < recvHashinputs.size(); i++){
+        if(recv_hash.find(recvHashinputs[i]) != recv_hash.end()){
+            psi_outputs.push_back(recv_hash[recvHashinputs[i]]);
+        }
+        else {
+            cout << "problematic point is " << recv_hash[recvHashinputs[i]] << std::endl; 
+        }
+
+    } 
+    
+   
+}
+*/
+
 
 // helper function call for testing transpose, printing matrix
 void printMtx(std::array<block, 1>& data)
@@ -123,7 +220,12 @@ void basic_transpose(){
     transpose(b2View, b3View);
     std::cout << "data before " << bView(12, 6) << std::endl;
     std::cout << "data before " << b3View(12, 6) << std::endl;
+    std::cout << "size of the return matrix in block " << b3View.data() << std::endl;
+    block matrixdata = *(b2View.data());
+    std::cout << "deferencing data() " << matrixdata << " " << b3View(0, 0) << std::endl;
     // NEED TO GET THIS BACK INTO AN ARRAY from matrixView 
+
+    //vector<block> output = (block*)b3View.data();
 
 }
 
