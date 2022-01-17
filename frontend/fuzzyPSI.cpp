@@ -4,8 +4,8 @@
 using namespace osuCrypto;
 //using namespace cryptoTools;
 
-/* PSI protocol skeleton 
-
+// PSI protocol skeleton 
+/*
 void fssPSI(vector<uint64_t> sender_inputs)
 {
 
@@ -199,30 +199,32 @@ void basic_transpose(){
 	r_prng.get((u8*)in.data(), sizeof(u8) *in.bounds()[0] * in.stride());
     //std::cout << "Matrix dimensions " << in.rows() << " times " << in.cols() << std::endl;
     //std::cout << "initial matrix " << int(in(10, 10)) << " " << int(in(101, 50)) << " " << int(in(161, 54)) << std::endl;
+    
+
 	Matrix<u8> out(440, 21);
 	transpose(in, out); 
     Matrix<u8> out2(165, 55);
     transpose(out, out2);
+    //std::cout << "transpose matrix " << int(out(10, 10)) << " " << int(out(50, 101)) << " " << int(out(54, 161)) << std::endl;
     //std::cout << "transpose matrix " << int(out2(10, 10)) << " " << int(out2(101, 50)) << " " << int(out2(161, 54)) << std::endl;
 
     //------------- Matrix transpose of blocks ---------------------------
-    // not working, try to do it in terms of u8!!!
 
-    std::array<std::array<block, 7>, 512> b;
+    // TO OPTIMIZE SH+EV   
+    //Matrix<block> bView(440, 140);
+    array<array<block, 1000>, 440> b;
     r_prng.get(b.data(), b.size());
-    std::cout << "can we sample blocks correctly " << b.size() << " times " << b[0].size() << std::endl;
-    std::cout << b[12][6] << std::endl;
-
-    MatrixView<block> bView((block*)b.data(), 512, 7);
-	Matrix<block> b2View(896, 4);
+    MatrixView<block> bView((block*)b.data(), 440, 1000);
+    Matrix<block> b2View(1000*128, 4);
+    Matrix<block> b3View(440, 1000);
     transpose(bView, b2View);
-    Matrix<block> b3View(512, 7);
     transpose(b2View, b3View);
-    std::cout << "data before " << bView(12, 6) << std::endl;
-    std::cout << "data before " << b3View(12, 6) << std::endl;
-    std::cout << "size of the return matrix in block " << b3View.data() << std::endl;
-    block matrixdata = *(b2View.data());
-    std::cout << "deferencing data() " << matrixdata << " " << b3View(0, 0) << std::endl;
+    std::cout << "data before " << bView(400, 190) << std::endl;
+    std::cout << "data before " << b3View(400, 190) << std::endl;
+
+    //std::cout << "size of the return matrix in block " << b3View.data() << std::endl;
+    //block matrixdata = *(b2View.data());
+    //std::cout << "deferencing data() " << matrixdata << " " << b3View(0, 0) << std::endl;
     // NEED TO GET THIS BACK INTO AN ARRAY from matrixView 
 
     //vector<block> output = (block*)b3View.data();

@@ -126,7 +126,7 @@ int main(int argc, char** argv)
     if (cmd.isSet("f"))
     {
         std::cout << "Let's do fuzzy PSI " << std::endl; 
-        //fuzzyPSI(11, 2000, 10000000);
+        //fuzzyPSI(11, 2000, 1000000);
         //fuzzyPSI(11, 3, 10);
 
         //here we are testing a basic okvs call 
@@ -151,7 +151,7 @@ int main(int argc, char** argv)
         
         cout << "OKVS FSS + share + eval by the PSI receiver " << std::endl;
         uint64_t delta = 10;
-        uint64_t nsquares = 1;
+        uint64_t nsquares = 100;
         uint64_t nkeys = nsquares * 4;
         array<vector<block>, 440> okvs_fsskey0, okvs_fsskey1;
         auto t1 = high_resolution_clock::now();
@@ -164,26 +164,30 @@ int main(int argc, char** argv)
 
 
         
-        //psi_FssEval(30, 30, okvs_fsskey0, delta, nkeys);
-        //psi_FssEval(30, 30, okvs_fsskey1, delta, nkeys);
+        // psi_FssEval(30, 30, okvs_fsskey0, delta, nkeys);
+        // psi_FssEval(30, 30, okvs_fsskey1, delta, nkeys);
       
         
-        //vector<vector<BitVector>> okvs0_bits = blocks_to_bits(okvs_fsskey0);
-        //vector<vector<BitVector>> okvs1_bits = blocks_to_bits(okvs_fsskey1); // check if transpose can be done here 
+        // vector<vector<BitVector>> okvs0_bits = blocks_to_bits(okvs_fsskey0);
+        // vector<vector<BitVector>> okvs1_bits = blocks_to_bits(okvs_fsskey1); // check if transpose can be done here 
         // check peter's test func
         // NEED TO TRANSPOSE
-        //psiSender_FssEval(70, 70, okvs0_bits, delta, nkeys);
-        //psiSender_FssEval(70, 70, okvs1_bits, delta, nkeys);
+        // psiSender_FssEval(70, 70, okvs0_bits, delta, nkeys);
+        // psiSender_FssEval(70, 70, okvs1_bits, delta, nkeys);
         
          cout << "TESTING PSI STUFF " << std::endl;
          basic_transpose();
 
          // 1. figure out the parameters of OKVS, OT messages size, check run time of 440 instances of OT 
          // 2. try a basic transpose for a matrix of arbitrary size - DONE
-         // 3. Share+Eval - go through every point in the square and check if the hash values match
-         // 4. Share+Eval - write code outside full domain eval and compute the hash outside the square for some arbit points
-         // 5. PSI_sender - (write the code + no need to test it now) -> Transpose, adding over paxos indices and SHA calls  
-         // 6. Share + Eval - after the PaxosEncode() -> write the transpose after the encode and compute the right format OT messages
+         // 3. Share+Eval - go through every point in the square - DONE
+         // 4. Share+Eval - go through the indices within block - DONE check if the hash values match for both shares *inside* square - ALMOST DONE, check again, TR 117
+         // 5. Share+Eval - write code outside full domain eval and compute the hash outside the square for some arbit points
+         // 6. PSI_sender - (write the code + no need to test it now) -> Transpose, adding over paxos indices and SHA calls  
+         // 7. Share + Eval - after the PaxosEncode() -> write the transpose after the encode and compute the right format OT messages
+         // 8. PSI_sender - testing!!
+         // 9. Does the Paxos encode and decode correctly with xor of just 3 hash functions??
+
          
 
         
