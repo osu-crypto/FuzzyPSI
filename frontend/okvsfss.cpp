@@ -221,14 +221,15 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
                     pt_y = pt_y + 1; 
                     //sha_fss.Update(&blockView(i, 0), 55);
                     //sha_fss.Update(&blockView(j, 0), 55);
+                    
                     sha_fss.Update((u8*)blockView[i].data(), 55);
                     sha_fss.Update((u8*)blockView[j].data(), 55);
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
-                    /*if (i == 118 && j == 54 || i == 127 && j == 63){
+                    if (i == 118 && j == 54) {
                         //std::cout << int(blockView(i, 50)) << " " << int(blockView(i, 40)) << " " << int(blockView(j, 20)) << std::endl;
                         std::cout << "i " << i << "j " << j << " key " << grd_key << " hash " << hash_output << std::endl;
-                    }*/
+                    }
                     //std::cout << "key " << grd_key << " hash " << hash_output << std::endl;
                     grd_key = 0;
                     sha_fss.Reset();
@@ -435,7 +436,7 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
     // 1. add a transpose here for the okvsVals and the compute the PaXosEncode
 
     PaxosEncode(okvsKeys, okvsVal0[0], okvsVal1[0], okvs0[0], okvs1[0], 128);
-    array<array<block, 76>, 440> test_transpose;
+    array<array<block, 66>, 440> test_transpose;
     for (int i = 1; i < okvsVal0.size(); i++){
         PaxosEncode(okvsKeys, okvsVal0[i], okvsVal1[i], okvs0[i], okvs1[i], 128);
         //std::cout << "okvs size " << okvs0[i].size() << std::endl;
@@ -452,18 +453,29 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         Okvs1.clear();*/
     }
     
-    /*
-    MatrixView<block> bView((block*)test_transpose.data(), 440, test_transpose[0].size());
-    std::cout << "okvs data " << okvs0[0][0] << std::endl;
-    std::cout << "data " << test_transpose[0][0] << std::endl;
-    std::cout << "matrix " << bView(0, 0) << std::endl;
-    Matrix<block> b2View(test_transpose[0].size()*128, 4);
-    Matrix<block> b3View(440, test_transpose[0].size());
+    
+    MatrixView<u8> bView((u8*)test_transpose.data(), 440, test_transpose[0].size()* 16);
+    Matrix<u8> b2View(test_transpose[0].size()*128, 55);
+    Matrix<u8> b3View(440, test_transpose[0].size()*16);
     transpose(bView, b2View);
     transpose(b2View, b3View);
-    std::cout << "data before " << bView(400, 0) << std::endl;
-    std::cout << "data after " << b3View(400, 0) << std::endl;
-    */
+    BitVector a1, a2, a3, a;
+    a1.append((u8*)b2View[11].data(), 440, 0);
+    a2.append((u8*)b2View[6].data(), 440, 0);
+    a3.append((u8*)b2View[7].data(), 440, 0); 
+    a = a1 ^ a2 ^ a3;
+    RandomOracle sha_test(sizeof(block));
+    block testhash; 
+    sha_test.Update(&a);
+    sha_test.Final(testhash);
+    
+    std::cout << "hash test " << testhash << std::endl;   
+    //std::cout << "bitvector a " << a1 << " " << a2 << " " << a3 << std::endl;
+    std::cout << "bitvector a " << a << std::endl;
+    std::cout << "actual bits " << int(b2View[6][0]) << " " <<  int(b2View[6][54]) << std::endl;
+    //std::cout << "data before " << int(bView(400, 0)) << std::endl;
+    //std::cout << "data after " << int(b3View(400, 0)) << std::endl;
+    
     
 }
 
