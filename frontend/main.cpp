@@ -151,18 +151,14 @@ int main(int argc, char** argv)
         
         cout << "OKVS FSS + share + eval by the PSI receiver " << std::endl;
         uint64_t delta = 10;
-        uint64_t nsquares = 100;
+        uint64_t nsquares = 1;
         uint64_t nkeys = nsquares * 4;
         array<vector<block>, 440> okvs_fsskey0, okvs_fsskey1;
         auto t1 = high_resolution_clock::now();
         psi_FssShareEval(delta, nsquares, okvs_fsskey0, okvs_fsskey1);
         auto t2 = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(t2-t1).count();
-        
         cout << "FSS_Eval simulation in milliseconds: " << duration << endl;
-        
-
-
         
         // psi_FssEval(30, 30, okvs_fsskey0, delta, nkeys);
         // psi_FssEval(30, 30, okvs_fsskey1, delta, nkeys);

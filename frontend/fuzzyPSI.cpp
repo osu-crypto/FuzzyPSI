@@ -212,15 +212,30 @@ void basic_transpose(){
 
     // TO OPTIMIZE SH+EV   
     //Matrix<block> bView(440, 140);
+    RandomOracle sha_fss(sizeof(block));
+    block hash;
     array<array<block, 1000>, 440> b;
     r_prng.get(b.data(), b.size());
-    MatrixView<block> bView((block*)b.data(), 440, 1000);
-    Matrix<block> b2View(1000*128, 4);
-    Matrix<block> b3View(440, 1000);
+    MatrixView<u8> bView((u8*)b.data(), 440, 1000*16);
+    Matrix<u8> b2View(1000*128, 55);
+    sha_fss.Update((u8*)b2View[1].data(), 55);
+    //sha_fss.Update((u8*)blockView[j].data(), 55); 
+    // NOTES: basically on receiver side we have j1, j2, j3 and k1, k2 so index for hashing should be
+    // hash([128 * j1 + k1] + [128 * j2 + k1] + [128 * j3 + k1]) || hash([128 * j1 + k2] + [128 * j2 + k2] + [128 * j3 + k2]) 
+    // action 1: recheck that xor of k1, k2, k3 is correct for paxos
+    // action 2: is sha computation homomorphic??? can we use hash([128 * j1 + k1]) || hash([128 * j2 + k1]) and so on 
+    // action 3: if not homomorphic check how to compute xor as it happens in paxos for b2View --> data and xoring outside before calling sha
+    // action 4: creating array<array<block>> in fss_share_eval ---> does it not work for large sizes??? 14446???
+    // action 5: best way to encrypt?? ecbEncblocks??? what about decryption
+     
+    sha_fss.Final(hash);
+    std::cout << "b2View hash " << hash << std::endl; 
+    Matrix<u8> b3View(440, 1000*16);
+    
     transpose(bView, b2View);
     transpose(b2View, b3View);
-    std::cout << "data before " << bView(400, 190) << std::endl;
-    std::cout << "data before " << b3View(400, 190) << std::endl;
+    std::cout << "data before " << int(bView(400, 1000)) << std::endl;
+    std::cout << "data before " << int(b3View(400, 1000)) << std::endl;
 
     //std::cout << "size of the return matrix in block " << b3View.data() << std::endl;
     //block matrixdata = *(b2View.data());

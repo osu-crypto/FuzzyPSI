@@ -353,16 +353,15 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         bl_x = delta + (i*2*len_sqr);
         bl_y = delta; // make bl_y = delta + (i*2*len_sqr)
         return_grid(bl_x, bl_y, grd_bl_x, grd_bl_y, len_sqr);
-        mprng.get(rand0.data(), rand0.size()); //sample 440 such 
-        mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
-        
+        //mprng.get(rand0.data(), rand0.size()); //sample 440 such 
+        //mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
         vector<array<block, 440>> weakfss_bl = share_weakFSS(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
         fulldomainEval(recv_hash, delta, weakfss_bl[0], grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
-        for (int j = 0; j < rand0.size(); j++){
-            shares = share_trivialFSS(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true, rand0[j], rand1[j]); // do this 440 times, once for each pair of <rand0, rand1>
+        for (int j = 0; j < weakfss_bl[0].size(); j++){
+            //shares = share_trivialFSS(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true, rand0[j], rand1[j]); // do this 440 times, once for each pair of <rand0, rand1>
             // CHECK BELOW 
-            okvsVal0[j].push_back(shares[0]); // this is where the transpose happens
-            okvsVal1[j].push_back(shares[1]); // do this step 440 times!
+            okvsVal0[j].push_back(weakfss_bl[0][j]); // this is where the transpose happens
+            okvsVal1[j].push_back(weakfss_bl[1][j]); // do this step 440 times!
         }
         //fulldomainEval(recv_hash, delta, weakfss_bl[1], grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
         grd_key = grd_bl_y;
@@ -376,14 +375,14 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         tl_x = bl_x;
         tl_y = bl_y + len_sqr - 1;
         return_grid(tl_x, tl_y, grd_tl_x, grd_tl_y, len_sqr);
-        mprng.get(rand0.data(), rand0.size()); //sample 440 such 
-        mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
+        //mprng.get(rand0.data(), rand0.size()); //sample 440 such 
+        //mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
         vector<array<block, 440>> weakfss_tl = share_weakFSS(delta, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false);
         fulldomainEval(recv_hash, delta, weakfss_tl[0], grd_tl_x, grd_tl_y, tl_x, true, tl_y, false);        
         for (int j = 0; j < rand0.size(); j++){
-            shares = share_trivialFSS(delta, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false, rand0[j], rand1[j]);
-            okvsVal0[j].push_back(shares[0]);
-            okvsVal1[j].push_back(shares[1]);
+            //shares = share_trivialFSS(delta, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false, rand0[j], rand1[j]);
+            okvsVal0[j].push_back(weakfss_tl[0][j]);
+            okvsVal1[j].push_back(weakfss_tl[1][j]);
         }
         //fulldomainEval(recv_hash, delta, weakfss_tl[1], grd_tl_x, grd_tl_y, tl_x, true, tl_y, false);
         grd_key = grd_tl_y;
@@ -396,14 +395,14 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         br_x = bl_x + len_sqr - 1;
         br_y = bl_y;
         return_grid(br_x, br_y, grd_br_x, grd_br_y, len_sqr);
-        mprng.get(rand0.data(), rand0.size()); //sample 440 such 
-        mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
+        //mprng.get(rand0.data(), rand0.size()); //sample 440 such 
+        //mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
         vector<array<block, 440>> weakfss_br = share_weakFSS(delta, grd_br_x, grd_br_y, br_x, false, br_y, true);
         fulldomainEval(recv_hash, delta, weakfss_br[0], grd_br_x, grd_br_y, br_x, false, br_y, true);
         for (int j = 0; j < rand0.size(); j++){
-            shares = share_trivialFSS(delta, grd_br_x, grd_br_y, br_x, false, br_y, true, rand0[j], rand1[j]);
-            okvsVal0[j].push_back(shares[0]);
-            okvsVal1[j].push_back(shares[1]);
+            //shares = share_trivialFSS(delta, grd_br_x, grd_br_y, br_x, false, br_y, true, rand0[j], rand1[j]);
+            okvsVal0[j].push_back(weakfss_br[0][j]);
+            okvsVal1[j].push_back(weakfss_br[1][j]);
         }
         //fulldomainEval(recv_hash, delta, weakfss_br[1], grd_br_x, grd_br_y, br_x, false, br_y, true);
         grd_key = grd_br_y;
@@ -416,16 +415,16 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         tr_x = bl_x + len_sqr - 1;
         tr_y = bl_y + len_sqr - 1;
         return_grid(tr_x, tr_y, grd_tr_x, grd_tr_y, len_sqr);
-        mprng.get(rand0.data(), rand0.size()); //sample 440 such 
-        mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
+        //mprng.get(rand0.data(), rand0.size()); //sample 440 such 
+        //mprng.get(rand1.data(), rand1.size()); //sample 440 such - easy
         vector<array<block, 440>> weakfss_tr = share_weakFSS(delta, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false);
         fulldomainEval(recv_hash, delta, weakfss_tr[0], grd_tr_x, grd_tr_y, tr_x, false, tr_y, false);
         for (int j = 0; j < rand0.size(); j++){
-            shares = share_trivialFSS(delta, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false, rand0[j], rand1[j]);
-            okvsVal0[j].push_back(shares[0]);
-            okvsVal1[j].push_back(shares[1]);
+            //shares = share_trivialFSS(delta, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false, rand0[j], rand1[j]);
+            okvsVal0[j].push_back(weakfss_tr[0][j]);
+            okvsVal1[j].push_back(weakfss_tr[1][j]);
         }
-        fulldomainEval(recv_hash, delta, weakfss_tr[1], grd_tr_x, grd_tr_y, tr_x, false, tr_y, false);
+        //fulldomainEval(recv_hash, delta, weakfss_tr[1], grd_tr_x, grd_tr_y, tr_x, false, tr_y, false);
         grd_key = grd_tr_y;
         grd_key = grd_key << 32;
         grd_key = grd_key + grd_tr_x;
@@ -435,9 +434,9 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
     }
     // 1. add a transpose here for the okvsVals and the compute the PaXosEncode
 
-
-    array<array<block, 1000>, 440> test_transpose;
-    for (int i = 0; i < okvsVal0.size(); i++){
+    PaxosEncode(okvsKeys, okvsVal0[0], okvsVal1[0], okvs0[0], okvs1[0], 128);
+    array<array<block, 76>, 440> test_transpose;
+    for (int i = 1; i < okvsVal0.size(); i++){
         PaxosEncode(okvsKeys, okvsVal0[i], okvsVal1[i], okvs0[i], okvs1[i], 128);
         //std::cout << "okvs size " << okvs0[i].size() << std::endl;
         for (int j = 0; j < okvs0[i].size(); j++)
@@ -453,9 +452,7 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
         Okvs1.clear();*/
     }
     
-
-    // prepare OT messages : in the form Mtrans[i][128*j + k]
-    //std::cout << "okvs0[i] dimensions " << okvs0[0].size() << " " << okvs0.size() << std::endl;
+    /*
     MatrixView<block> bView((block*)test_transpose.data(), 440, test_transpose[0].size());
     std::cout << "okvs data " << okvs0[0][0] << std::endl;
     std::cout << "data " << test_transpose[0][0] << std::endl;
@@ -464,9 +461,9 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
     Matrix<block> b3View(440, test_transpose[0].size());
     transpose(bView, b2View);
     transpose(b2View, b3View);
-    std::cout << "data before " << bView(400, 400) << std::endl;
-    std::cout << "data after " << b3View(400, 400) << std::endl;
-
+    std::cout << "data before " << bView(400, 0) << std::endl;
+    std::cout << "data after " << b3View(400, 0) << std::endl;
+    */
     
 }
 

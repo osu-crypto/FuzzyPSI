@@ -7,6 +7,7 @@
 #include <cryptoTools/Common/Timer.h>
 #include <cryptoTools/Crypto/AES.h>
 #include <cryptoTools/Crypto/PRNG.h>
+#include <cryptoTools/Crypto/RandomOracle.h>
 //adding for the transpose
 #include <cryptoTools/Common/Matrix.h>
 #include <cryptoTools/Common/MatrixView.h>
