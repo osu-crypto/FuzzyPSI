@@ -35,7 +35,7 @@ void fss_psi()
     // add FSS_share+eval here
     std::array<vector<block>, 440> recvr_fsskeys0, recvr_fsskeys1;
     std::unordered_map<block, uint64_t> recvr_hash;
-    psi_FssShareEval(recvr_hash, 10, 1, recvr_fsskeys0, recvr_fsskeys1);
+    psi_FssShareEval(recvr_hash, 10, 50, recvr_fsskeys0, recvr_fsskeys1);
     std::cout << "plain vals " << recvr_fsskeys0[430][0] << " " << recvr_fsskeys1[430][0] << std::endl; 
     std::cout << "plain vals " << recvr_fsskeys0[430][1] << " " << recvr_fsskeys1[430][1] << std::endl; 
     std::cout << "plain vals " << recvr_fsskeys0[430][2] << " " << recvr_fsskeys1[430][2] << std::endl; 

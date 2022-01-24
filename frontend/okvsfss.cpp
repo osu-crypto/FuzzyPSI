@@ -443,12 +443,12 @@ void psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64_t d
     }
     // 1. add a transpose here for the okvsVals and the compute the PaXosEncode
 
-    array<array<block, 66>, 440> test_transpose;
+    //array<array<block, 66>, 440> test_transpose;
     for (int i = 0; i < okvsVal0.size(); i++){
         PaxosEncode(okvsKeys, okvsVal0[i], okvsVal1[i], okvs0[i], okvs1[i], 128);
         //std::cout << "okvs size " << okvs0[i].size() << std::endl;
-        for (int j = 0; j < okvs0[i].size(); j++)
-            test_transpose[i][j] = okvs0[i][j];
+      //  for (int j = 0; j < okvs0[i].size(); j++)
+      //      test_transpose[i][j] = okvs0[i][j];
         
         /*
         MatrixView<block> okvs0_View((block*)Okvs0.data(), Okvs0.size(), 1);
@@ -461,8 +461,8 @@ void psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64_t d
         Okvs1.clear();*/
     }
     
-    
-    MatrixView<u8> bView((u8*)test_transpose.data(), 440, test_transpose[0].size()* 16);
+    // NEED STUFF BELOW FOR PSI SENDER EVAL!!! ****
+    /*MatrixView<u8> bView((u8*)test_transpose.data(), 440, test_transpose[0].size()* 16);
     Matrix<u8> b2View(test_transpose[0].size()*128, 55);
     Matrix<u8> b3View(440, test_transpose[0].size()*16);
     transpose(bView, b2View);
@@ -475,7 +475,7 @@ void psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64_t d
     RandomOracle sha_test(sizeof(block));
     block testhash; 
     sha_test.Update(&a);
-    sha_test.Final(testhash);
+    sha_test.Final(testhash);*/
     
     //std::cout << "hash test " << testhash << std::endl;   
     //std::cout << "bitvector a " << a1 << " " << a2 << " " << a3 << std::endl;
