@@ -10,6 +10,7 @@
 #include <cryptoTools/Common/BitVector.h>
 #include "cryptoTools/Common/BitIterator.h"
 #include <cryptoTools/Crypto/RandomOracle.h>
+#include "libOTe/Tools/LinearCode.h"
 #include <string>
 #include <unordered_map>
 
@@ -33,7 +34,7 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<osuCrypto::blo
 
 // Functions tailored for the PSI protocol 
 // 0. Share + Full domain Eval 
-void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<osuCrypto::block>, 440> &okvs0, array<vector<osuCrypto::block>, 440> &okvs1);
+void psi_FssShareEval(std::unordered_map<osuCrypto::block, uint64_t> &recv_hash, uint64_t delta, int nSquares, array<vector<osuCrypto::block>, 440> &okvs0, array<vector<osuCrypto::block>, 440> &okvs1);
 
 // Eval for the PSI sender, without using Gf2E data type 
 vector<vector<osuCrypto::BitVector>> blocks_to_bits(array<vector<osuCrypto::block>, 440> okvs);

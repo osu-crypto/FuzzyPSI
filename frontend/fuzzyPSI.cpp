@@ -1,12 +1,12 @@
 #include "fuzzyPSI.h"
-//#include "paxos.h"
+#include "okvsfss.h"
 
 using namespace osuCrypto;
 //using namespace cryptoTools;
 
 // PSI protocol skeleton 
-/*
-void fssPSI(vector<uint64_t> sender_inputs)
+
+void fss_psi()
 {
 
     // Setup networking. Setting up channels for PSI, sender and recver according to OT not PSI 
@@ -22,98 +22,116 @@ void fssPSI(vector<uint64_t> sender_inputs)
     // **PSI sender** operates out of the receiver thread
     auto recverThread = std::thread([&]() {
 
-        // sampling the l - bit vector or choices as the OT receiver 
+    // *PSI receiver*
+    PRNG s_prng(toBlock(12));
+
+    //initializing *OT sender*
+    // Send the messages, that is, short keys (k0, k1) that will encrypt the actual FSS keys (FSSkey0, FSSkey1)
+    MasnyRindal sender;
+    std::vector<std::array<osuCrypto::block, 2>> baseSend(baseCount);
+    s_prng.get(baseSend.data(), baseSend.size()); // sample the encryption keys 
+    sender.sendChosen(baseSend, s_prng, senderChl);
+   
+    // add FSS_share+eval here
+    std::array<vector<block>, 440> recvr_fsskeys0, recvr_fsskeys1;
+    std::unordered_map<block, uint64_t> recvr_hash;
+    psi_FssShareEval(recvr_hash, 10, 1, recvr_fsskeys0, recvr_fsskeys1);
+    std::cout << "plain vals " << recvr_fsskeys0[430][0] << " " << recvr_fsskeys1[430][0] << std::endl; 
+    std::cout << "plain vals " << recvr_fsskeys0[430][1] << " " << recvr_fsskeys1[430][1] << std::endl; 
+    std::cout << "plain vals " << recvr_fsskeys0[430][2] << " " << recvr_fsskeys1[430][2] << std::endl; 
+    
+    // #6 TO DO: below we encrypt the okvs messages 
+    
+    Matrix<block> recvr_ciphertxt0(440, recvr_fsskeys0[0].size()); // assuming all okvs same size
+    Matrix<block> recvr_ciphertxt1(440, recvr_fsskeys1[0].size());  
+
+    //encrypt the fsskeys using baseSend(encryption keys)
+    for (int i = 0; i < baseCount; i++){
+        AES recvr_aeskey0, recvr_aeskey1;
+        recvr_aeskey0.setKey(baseSend[i][0]);
+        recvr_aeskey1.setKey(baseSend[i][1]);
+        for (int j = 0; j < recvr_fsskeys0[0].size(); j++){
+            recvr_ciphertxt0[i][j] = recvr_aeskey0.ecbEncBlock(recvr_fsskeys0[i][j]);
+            recvr_ciphertxt1[i][j] = recvr_aeskey1.ecbEncBlock(recvr_fsskeys1[i][j]);
+            if (j < 3 && i == 430)
+                std::cout << i << " " << j << " " << recvr_ciphertxt0[i][j] << " " << recvr_ciphertxt1[i][j] << std::endl;
+        }
+            
+    }
+    
+    senderChl.asyncSendCopy(recvr_ciphertxt0.cols());
+    senderChl.asyncSendCopy(std::move(recvr_ciphertxt0));
+    senderChl.asyncSendCopy(std::move(recvr_ciphertxt1));
+
+    });
+
+     // sampling the l - bit vector or choices as the OT receiver 
         PRNG r_prng(toBlock(14));
         choices.randomize(r_prng); 
-        MasnyRindal recver;
-        
+       
         // Receive the messages
+        MasnyRindal recver;
         recver.receiveChosen(choices, baseRecv, r_prng, recverChl);
         
         // basically receiver gets ciphertexts of form [# base OT] * [enc(k1, m1), enc(k2, m2)] here
-        std::vector<block> recv_ciphertxt0, recv_ciphertxt1, fsskeysRecv;
-        block recv_ciphertxt;
-        recverChl.recv(recv_ciphertxt0);
-        recverChl.recv(recv_ciphertxt1);
+        size_t okvs_size = 0;
+        recverChl.recv(okvs_size);
+        std::cout << "received okvs size " << okvs_size << std::endl;
+        Matrix<block> sendr_ciphertxt0(440, okvs_size);
+        Matrix<block> sendr_ciphertxt1(440, okvs_size);
+        recverChl.recv(sendr_ciphertxt0);
+        recverChl.recv(sendr_ciphertxt1);
+
+        recverThread.join();
+        //std::cout << "sendr_fsskeys size " << sendr_fsskeys.rows() << " " << sendr_fsskeys.cols() << std::endl;
+        //std::cout << "sendr_ciphertxt vals " << sendr_ciphertxt0(400, 0) << " " << sendr_ciphertxt1(400, 0) << std::endl;
 
         //now we use the baseRecv as decryption key and choices 
         // #1 TO DO: not changing the encryption and decryption of OT messages
         //           if this is slow, we can change it to ecbEncBlocks() and ...
+        Matrix<block> sendr_fsskeys(440, okvs_size);
+        block ciphertxt;
         details::AESTypes::Portable;
-        AESDec aeskey;
-            for (int i = 0; i < baseCount; i++){
-                aeskey.setKey(baseRecv[i]);
+        for (int i = 0; i < baseCount; i++){
+            //std::cout << "decryption " << std::endl;
+            AESDec aesDeckey;
+            aesDeckey.setKey(baseRecv[i]);
+            for (int j = 0; j < okvs_size; j++){
                 if (choices[i] == 0){
-                    for (int j = 0; j < fsskeySize; j++){
-                        recv_ciphertxt = aeskey.ecbDecBlock(recv_ciphertxt0[(i*fsskeySize) + j]);
-                        fsskeysRecv.push_back(recv_ciphertxt);
-                    }  
+                    ciphertxt = aesDeckey.ecbDecBlock(sendr_ciphertxt0[i][j]);
+                    if (i == 430 && j < 3)
+                        std::cout << i << " " << j << " " << sendr_ciphertxt0[i][j] << " " << ciphertxt << std::endl;
                 }
-                else{ 
-                    for (int j = 0; j < fsskeySize; j++){
-                        recv_ciphertxt = aeskey.ecbDecBlock(recv_ciphertxt1[(i*fsskeySize) + j]);
-                        fsskeysRecv.push_back(recv_ciphertxt);
-                    }
-                }
-
+                else{
+                    ciphertxt = aesDeckey.ecbDecBlock(sendr_ciphertxt1[i][j]);
+                    if (i == 430 && j < 3)
+                        std::cout << i << " " << j << " " << sendr_ciphertxt1[i][j] << " " << ciphertxt << std::endl;
+                }        
+                    
             }
-       
-
+           
+        }
+        
         // #2 TO DO: modify 'fsskeysRecv' into a matrix form 
         // #3 TO DO: add a transpose to 'fsskeysRecv'        
-        for (uint64_t r = 0; r < sender_inputs.size(); r++){
+        /*for (uint64_t r = 0; r < sender_inputs.size(); r++){
             // #4 TO DO: call the psi_SenderFSSEval() with 
             //           fsskeysRecv_transpose 
             // Note: it should suffice to send only the hash values right? 
             hashed_inputs.push_back(hash);
-        }
+        }*/
         //sender sending hash of FSS eval of his inputs
-        recverChl.asyncSend(hashed_inputs); 
+        //recverChl.asyncSend(hashed_inputs); 
        
        
-        });
 
-    // *PSI receiver*
-    std::vector<block> recvd_outputs;
+    // TO DO: now we recv the hash of the each of the PSI sender's inputs 
+    // vector<block> recvHashinputs(r_input_size), recver_hashes;
+    //senderChl.recv(recvHashinputs);
     
-    //initializing *OT sender*
-    PRNG s_prng(toBlock(12));
-    MasnyRindal sender;
-    std::vector<std::array<osuCrypto::block, 2>> baseSend(baseCount);
-    s_prng.get(baseSend.data(), baseSend.size());
-    
-    // Send the messages, that is, short keys (k0, k1) that will encrypt the actual FSS keys (FSSkey0, FSSkey1)
-    sender.sendChosen(baseSend, s_prng, senderChl);
    
-    // #5 TO DO: add FSS_share+eval here
-    //           save the full domain eval in recv_hash
-    //           return the fsskeys0, fsskeys1 
-
-    // #6 TO DO: below we encrypt the okvs messages 
-   
-    AES aeskey0, aeskey1;
-    block ciphertxt0, ciphertxt1;  
-    //encrypt the fsskeys using baseSend(encryption keys)
-    for (int i = 0; i < baseCount; i++){
-        aeskey0.setKey(baseSend[i][0]);
-        aeskey1.setKey(baseSend[i][1]);
-        for (int j = 0; j < fsskeySize; j++){
-            aeskey0.ecbEncBlock(fsskeys0[(i*fsskeySize) + j], ciphertxt0);
-            aeskey1.ecbEncBlock(fsskeys1[(i*fsskeySize) + j], ciphertxt1); 
-            keys_ciphertxt0.push_back(ciphertxt0);
-            keys_ciphertxt1.push_back(ciphertxt1);
-        }
-    }
-    senderChl.asyncSend(keys_ciphertxt0);
-    senderChl.asyncSend(keys_ciphertxt1);
-    
-
-    // now we recv the hash of the each of the PSI sender's inputs 
-    vector<block> recvHashinputs(r_input_size), recver_hashes;
-    senderChl.recv(recvHashinputs);
-    recverThread.join();
-   
-    vector<uint64_t> psi_outputs;
+    // TO DO: computing the output 
+    /*vector<uint64_t> psi_outputs;
     for (uint64_t i = 0; i < recvHashinputs.size(); i++){
         if(recv_hash.find(recvHashinputs[i]) != recv_hash.end()){
             psi_outputs.push_back(recv_hash[recvHashinputs[i]]);
@@ -122,11 +140,11 @@ void fssPSI(vector<uint64_t> sender_inputs)
             cout << "problematic point is " << recv_hash[recvHashinputs[i]] << std::endl; 
         }
 
-    } 
+    } */
     
    
 }
-*/
+
 
 
 // helper function call for testing transpose, printing matrix
@@ -212,14 +230,22 @@ void basic_transpose(){
 
     // TO OPTIMIZE SH+EV   
     //Matrix<block> bView(440, 140);
-    RandomOracle sha_fss(sizeof(block));
-    block hash;
-    array<array<block, 1000>, 440> b;
+    RandomOracle sha_fss(sizeof(block)), sha_fss2(sizeof(block));
+    block hash, hash2;
+    array<array<block, 10>, 440> b;
     r_prng.get(b.data(), b.size());
-    MatrixView<u8> bView((u8*)b.data(), 440, 1000*16);
-    Matrix<u8> b2View(1000*128, 55);
+    std::cout << " blocksss " << b[0].size() << std::endl;
+    MatrixView<u8> bView((u8*)b.data(), 440, 10*16);
+    Matrix<u8> b2View(10*128, 55);
     sha_fss.Update((u8*)b2View[1].data(), 55);
+    sha_fss2.Update((u8*)b2View[128*5 + 14].data(), 55);
+    std::cout << "b2View " << int(b2View[128*5 + 15][0]) << std::endl;
+    BitVector a((u8*)b2View[128*5 + 15].data(), 440);
+    //std::cout << "bitvector of transposed vector a " << a << std::endl;
     //sha_fss.Update((u8*)blockView[j].data(), 55); 
+
+
+
     // NOTES: basically on receiver side we have j1, j2, j3 and k1, k2 so index for hashing should be
     // hash([128 * j1 + k1] + [128 * j2 + k1] + [128 * j3 + k1]) || hash([128 * j1 + k2] + [128 * j2 + k2] + [128 * j3 + k2]) 
     // action 1: recheck that xor of k1, k2, k3 is correct for paxos
@@ -227,15 +253,17 @@ void basic_transpose(){
     // action 3: if not homomorphic check how to compute xor as it happens in paxos for b2View --> data and xoring outside before calling sha
     // action 4: creating array<array<block>> in fss_share_eval ---> does it not work for large sizes??? 14446???
     // action 5: best way to encrypt?? ecbEncblocks??? what about decryption
-     
+
     sha_fss.Final(hash);
+    sha_fss2.Final(hash2);
     std::cout << "b2View hash " << hash << std::endl; 
-    Matrix<u8> b3View(440, 1000*16);
+    std::cout << "b2View hash2 " << hash2 << std::endl; 
+    Matrix<u8> b3View(440, 10*16);
     
     transpose(bView, b2View);
     transpose(b2View, b3View);
-    std::cout << "data before " << int(bView(400, 1000)) << std::endl;
-    std::cout << "data before " << int(b3View(400, 1000)) << std::endl;
+    std::cout << "data before " << int(bView(400, 9)) << std::endl;
+    std::cout << "data before " << int(b3View(400, 9)) << std::endl;
 
     //std::cout << "size of the return matrix in block " << b3View.data() << std::endl;
     //block matrixdata = *(b2View.data());

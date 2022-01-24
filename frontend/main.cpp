@@ -147,10 +147,11 @@ int main(int argc, char** argv)
         cout << "OKVS encode + decode  " << duration << endl;
         */
 
-        //here we are testing a basic share FSS for far apart 
+        //here we are testing a bas ic share FSS for far apart 
         
         cout << "OKVS FSS + share + eval by the PSI receiver " << std::endl;
-        uint64_t delta = 10;
+        fss_psi();
+        /*uint64_t delta = 10;
         uint64_t nsquares = 1;
         uint64_t nkeys = nsquares * 4;
         array<vector<block>, 440> okvs_fsskey0, okvs_fsskey1;
@@ -159,20 +160,10 @@ int main(int argc, char** argv)
         auto t2 = high_resolution_clock::now();
         auto duration = duration_cast<milliseconds>(t2-t1).count();
         cout << "FSS_Eval simulation in milliseconds: " << duration << endl;
-        
-        // psi_FssEval(30, 30, okvs_fsskey0, delta, nkeys);
-        // psi_FssEval(30, 30, okvs_fsskey1, delta, nkeys);
-      
-        
-        // vector<vector<BitVector>> okvs0_bits = blocks_to_bits(okvs_fsskey0);
-        // vector<vector<BitVector>> okvs1_bits = blocks_to_bits(okvs_fsskey1); // check if transpose can be done here 
-        // check peter's test func
-        // NEED TO TRANSPOSE
-        // psiSender_FssEval(70, 70, okvs0_bits, delta, nkeys);
-        // psiSender_FssEval(70, 70, okvs1_bits, delta, nkeys);
+        */
         
          cout << "TESTING PSI STUFF " << std::endl;
-         basic_transpose();
+         //basic_transpose();
 
          // 1. figure out the parameters of OKVS, OT messages size, check run time of 440 instances of OT 
          // 2. try a basic transpose for a matrix of arbitrary size - DONE

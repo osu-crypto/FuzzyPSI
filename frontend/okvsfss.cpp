@@ -65,6 +65,13 @@ void PaxosEncode(std::vector<uint64_t> setKeys, const std::vector<block> setValu
     okvs1.resize(x1.size() / fieldSizeBytes);
     memcpy(okvs0.data(), x0.data(), x0.size());
     memcpy(okvs1.data(), x1.data(), x1.size());
+
+   // MatrixView<block> try0(x0.data(), x0.size(), 1);
+   // std::cout << "check u8 in okvs " << okvs0[0] << std::endl;
+   // std::cout << "check u8 in matrix  " << int(try0[0][0]) << std::endl;
+
+
+    //dict0->checkoutput();
    
 } 
 
@@ -226,10 +233,10 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
                     sha_fss.Update((u8*)blockView[j].data(), 55);
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
-                    if (i == 118 && j == 54) {
+                    /*if (i == 118 && j == 54) {
                         //std::cout << int(blockView(i, 50)) << " " << int(blockView(i, 40)) << " " << int(blockView(j, 20)) << std::endl;
                         std::cout << "i " << i << "j " << j << " key " << grd_key << " hash " << hash_output << std::endl;
-                    }
+                    }*/
                     //std::cout << "key " << grd_key << " hash " << hash_output << std::endl;
                     grd_key = 0;
                     sha_fss.Reset();
@@ -329,10 +336,11 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
 
 // FSS_Share for PSI Receiver 
 // output : gives you 440 instances of okvs0, okvs1 which are inputs to OT messages
-void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &okvs0, array<vector<block>, 440> &okvs1){
+void psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64_t delta, int nSquares, array<vector<block>, 440> &okvs0, array<vector<block>, 440> &okvs1){
     //Full domain evaluation of the FSS
 
-    std::unordered_map<block, uint64_t> recv_hash, test_hash;
+    //std::unordered_map<block, uint64_t> recv_hash, test_hash;
+
     //initialize variables
     uint64_t len_sqr = 2 * delta; 
     array<vector<block>, 440> okvsVal0, okvsVal1;  /// NOT SURE ABOUT THIS!!!!
@@ -435,13 +443,13 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
     }
     // 1. add a transpose here for the okvsVals and the compute the PaXosEncode
 
-    PaxosEncode(okvsKeys, okvsVal0[0], okvsVal1[0], okvs0[0], okvs1[0], 128);
     array<array<block, 66>, 440> test_transpose;
-    for (int i = 1; i < okvsVal0.size(); i++){
+    for (int i = 0; i < okvsVal0.size(); i++){
         PaxosEncode(okvsKeys, okvsVal0[i], okvsVal1[i], okvs0[i], okvs1[i], 128);
         //std::cout << "okvs size " << okvs0[i].size() << std::endl;
         for (int j = 0; j < okvs0[i].size(); j++)
             test_transpose[i][j] = okvs0[i][j];
+        
         /*
         MatrixView<block> okvs0_View((block*)Okvs0.data(), Okvs0.size(), 1);
 	    Matrix<block> ot0_View(128, (Okvs0.size()/128) + 1);
@@ -469,10 +477,10 @@ void psi_FssShareEval(uint64_t delta, int nSquares, array<vector<block>, 440> &o
     sha_test.Update(&a);
     sha_test.Final(testhash);
     
-    std::cout << "hash test " << testhash << std::endl;   
+    //std::cout << "hash test " << testhash << std::endl;   
     //std::cout << "bitvector a " << a1 << " " << a2 << " " << a3 << std::endl;
-    std::cout << "bitvector a " << a << std::endl;
-    std::cout << "actual bits " << int(b2View[6][0]) << " " <<  int(b2View[6][54]) << std::endl;
+    //std::cout << "bitvector a " << a << std::endl;
+    //std::cout << "actual bits " << int(b2View[6][0]) << " " <<  int(b2View[6][54]) << std::endl;
     //std::cout << "data before " << int(bView(400, 0)) << std::endl;
     //std::cout << "data after " << int(b3View(400, 0)) << std::endl;
     
@@ -773,7 +781,7 @@ void far_apart_FssEval(uint64_t x_coord, uint64_t y_coord, vector<block> okvs, u
     uint64_t len_sqr = 2* delta;
     uint64_t grd_x, grd_y, x, y; 
     int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
-    double c1 = 2.4; // for okvs
+    double c1 = 1.3; // for okvs
 
     uint64_t okvs_key, yx_share;
     
