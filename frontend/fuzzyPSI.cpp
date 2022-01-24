@@ -6,7 +6,7 @@ using namespace osuCrypto;
 
 // PSI protocol skeleton 
 
-void fss_psi()
+void fss_psi(vector<uint64_t> sendr_inputs)
 {
 
     // Setup networking. Setting up channels for PSI, sender and recver according to OT not PSI 
@@ -20,7 +20,7 @@ void fss_psi()
     BitVector choices(baseCount);
 
     // **PSI sender** operates out of the receiver thread
-    auto recverThread = std::thread([&]() {
+    auto recverThread_ot = std::thread([&]() {
 
     // *PSI receiver*
     PRNG s_prng(toBlock(12));
@@ -35,10 +35,10 @@ void fss_psi()
     // add FSS_share+eval here
     std::array<vector<block>, 440> recvr_fsskeys0, recvr_fsskeys1;
     std::unordered_map<block, uint64_t> recvr_hash;
-    psi_FssShareEval(recvr_hash, 10, 50, recvr_fsskeys0, recvr_fsskeys1);
-    std::cout << "plain vals " << recvr_fsskeys0[430][0] << " " << recvr_fsskeys1[430][0] << std::endl; 
-    std::cout << "plain vals " << recvr_fsskeys0[430][1] << " " << recvr_fsskeys1[430][1] << std::endl; 
-    std::cout << "plain vals " << recvr_fsskeys0[430][2] << " " << recvr_fsskeys1[430][2] << std::endl; 
+    psi_FssShareEval(recvr_hash, 10, 100, recvr_fsskeys0, recvr_fsskeys1);
+    //std::cout << "plain vals " << recvr_fsskeys0[330][0] << " " << recvr_fsskeys1[330][0] << std::endl; 
+    //std::cout << "plain vals " << recvr_fsskeys0[330][1] << " " << recvr_fsskeys1[330][1] << std::endl; 
+    //std::cout << "plain vals " << recvr_fsskeys0[330][2] << " " << recvr_fsskeys1[330][2] << std::endl; 
     
     // #6 TO DO: below we encrypt the okvs messages 
     
@@ -53,8 +53,8 @@ void fss_psi()
         for (int j = 0; j < recvr_fsskeys0[0].size(); j++){
             recvr_ciphertxt0[i][j] = recvr_aeskey0.ecbEncBlock(recvr_fsskeys0[i][j]);
             recvr_ciphertxt1[i][j] = recvr_aeskey1.ecbEncBlock(recvr_fsskeys1[i][j]);
-            if (j < 3 && i == 430)
-                std::cout << i << " " << j << " " << recvr_ciphertxt0[i][j] << " " << recvr_ciphertxt1[i][j] << std::endl;
+      //      if (j < 5 && i == 330)
+      //          std::cout << i << " " << j << " " << recvr_ciphertxt0[i][j] << " " << recvr_ciphertxt1[i][j] << std::endl;
         }
             
     }
@@ -66,7 +66,7 @@ void fss_psi()
     });
 
      // sampling the l - bit vector or choices as the OT receiver 
-        PRNG r_prng(toBlock(14));
+        PRNG r_prng(toBlock(16));
         choices.randomize(r_prng); 
        
         // Receive the messages
@@ -82,9 +82,12 @@ void fss_psi()
         recverChl.recv(sendr_ciphertxt0);
         recverChl.recv(sendr_ciphertxt1);
 
-        recverThread.join();
-        //std::cout << "sendr_fsskeys size " << sendr_fsskeys.rows() << " " << sendr_fsskeys.cols() << std::endl;
-        //std::cout << "sendr_ciphertxt vals " << sendr_ciphertxt0(400, 0) << " " << sendr_ciphertxt1(400, 0) << std::endl;
+        // CRITICAL: do we want another thread to do the PSI evaluations by sender and then compute output
+        // then keep the thread join operation below
+        // if we want another thread then we can 
+
+        recverThread_ot.join();
+        
 
         //now we use the baseRecv as decryption key and choices 
         // #1 TO DO: not changing the encryption and decryption of OT messages
@@ -98,23 +101,37 @@ void fss_psi()
             aesDeckey.setKey(baseRecv[i]);
             for (int j = 0; j < okvs_size; j++){
                 if (choices[i] == 0){
-                    ciphertxt = aesDeckey.ecbDecBlock(sendr_ciphertxt0[i][j]);
-                    if (i == 430 && j < 3)
-                        std::cout << i << " " << j << " " << sendr_ciphertxt0[i][j] << " " << ciphertxt << std::endl;
+                    sendr_fsskeys[i][j] = aesDeckey.ecbDecBlock(sendr_ciphertxt0[i][j]);
+                    //if (i == 330 && j < 5)
+                    //    std::cout << i << " " << j << " " << sendr_ciphertxt0[i][j] << " " << sendr_fsskeys[i][j] << std::endl;
                 }
                 else{
-                    ciphertxt = aesDeckey.ecbDecBlock(sendr_ciphertxt1[i][j]);
-                    if (i == 430 && j < 3)
-                        std::cout << i << " " << j << " " << sendr_ciphertxt1[i][j] << " " << ciphertxt << std::endl;
+                    sendr_fsskeys[i][j] = aesDeckey.ecbDecBlock(sendr_ciphertxt1[i][j]);
+                    //if (i == 330 && j < 5)
+                    //    std::cout << i << " " << j << " " << sendr_ciphertxt1[i][j] << " " << sendr_fsskeys[i][j] << std::endl;
                 }        
                     
             }
            
         }
+    // #1 TO D0: add another thread for the psi receiver - done
         
-        // #2 TO DO: modify 'fsskeysRecv' into a matrix form 
-        // #3 TO DO: add a transpose to 'fsskeysRecv'        
-        /*for (uint64_t r = 0; r < sender_inputs.size(); r++){
+    // **PSI sender** operates out of the receiver thread
+    //auto recverThread_fsseval = std::thread([&]() {
+
+    //});
+
+    // #2 TO DO: modify 'sendr_fsskeys' into a matrix form - done
+    // #3 TO DO: add a transpose to 'fsskeysRecv' - done
+    MatrixView<u8> sendr_fss_keys((u8*)sendr_fsskeys.data(), 440, okvs_size * 16);
+    Matrix<u8> sendr_Tfss_keys(okvs_size * 128, 55);
+    transpose(sendr_fss_keys, sendr_Tfss_keys);
+
+    // #4 TO DO: introduce inputs for the PSI sender,some systematic input - done
+
+    // #5 TO DO: evaluate for the inputs the FSS and compute the hash and send 
+
+    /*for (uint64_t r = 0; r < sender_inputs.size(); r++){
             // #4 TO DO: call the psi_SenderFSSEval() with 
             //           fsskeysRecv_transpose 
             // Note: it should suffice to send only the hash values right? 

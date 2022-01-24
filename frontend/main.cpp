@@ -126,6 +126,20 @@ int main(int argc, char** argv)
     if (cmd.isSet("f"))
     {
         std::cout << "Let's do fuzzy PSI " << std::endl; 
+        std::vector<uint64_t> sendr_inputs;
+        uint64_t grd_key;
+        for (uint64_t i = 0; i < 2; i++){ // let this be the x coordinate
+            for (uint64_t j = 0; j < 2; j++){ // let this be the y coordinate
+                grd_key = j;
+                grd_key = grd_key << 32;
+                grd_key = grd_key + i;
+                sendr_inputs.push_back(grd_key);
+                //std::cout << "grd key " << grd_key << std::endl;
+                grd_key = 0;        
+            }
+        }
+        std::cout << "done sampling the sender's inputs " << std::endl;
+        fss_psi(sendr_inputs);
         //fuzzyPSI(11, 2000, 1000000);
         //fuzzyPSI(11, 3, 10);
 
@@ -149,8 +163,7 @@ int main(int argc, char** argv)
 
         //here we are testing a bas ic share FSS for far apart 
         
-        cout << "OKVS FSS + share + eval by the PSI receiver " << std::endl;
-        fss_psi();
+       
         /*uint64_t delta = 10;
         uint64_t nsquares = 1;
         uint64_t nkeys = nsquares * 4;
@@ -162,7 +175,7 @@ int main(int argc, char** argv)
         cout << "FSS_Eval simulation in milliseconds: " << duration << endl;
         */
         
-         cout << "TESTING PSI STUFF " << std::endl;
+        cout << "TESTING PSI STUFF " << std::endl;
          //basic_transpose();
 
          // 1. figure out the parameters of OKVS, OT messages size, check run time of 440 instances of OT 
@@ -173,10 +186,7 @@ int main(int argc, char** argv)
          // 6. PSI_sender - (write the code + no need to test it now) -> Transpose, adding over paxos indices and SHA calls  
          // 7. Share + Eval - after the PaxosEncode() -> write the transpose after the encode and compute the right format OT messages
          // 8. PSI_sender - testing!!
-         // 9. Does the Paxos encode and decode correctly with xor of just 3 hash functions??
-
-         
-
+         // 9. Does the Paxos encode and decode correctly with xor of just 3 hash functions?
         
         return 0;
     }
