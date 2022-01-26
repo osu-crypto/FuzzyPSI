@@ -336,7 +336,7 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
 
 // FSS_Share for PSI Receiver 
 // output : gives you 440 instances of okvs0, okvs1 which are inputs to OT messages
-void psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64_t delta, int nSquares, array<vector<block>, 440> &okvs0, array<vector<block>, 440> &okvs1){
+uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64_t delta, int nSquares, array<vector<block>, 440> &okvs0, array<vector<block>, 440> &okvs1){
     //Full domain evaluation of the FSS
 
     //std::unordered_map<block, uint64_t> recv_hash, test_hash;
@@ -378,7 +378,6 @@ void psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64_t d
         grd_key = grd_key + grd_bl_x;
         okvsKeys.push_back(grd_key);
         grd_key = 0;
-        
         
         //TL
         tl_x = bl_x;
@@ -460,7 +459,7 @@ void psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64_t d
         Okvs0.clear();
         Okvs1.clear();*/
     }
-    
+    return okvsKeys.size();
     // NEED STUFF BELOW FOR PSI SENDER EVAL!!! ****
     /*MatrixView<u8> bView((u8*)test_transpose.data(), 440, test_transpose[0].size()* 16);
     Matrix<u8> b2View(test_transpose[0].size()*128, 55);
@@ -476,26 +475,25 @@ void psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64_t d
     block testhash; 
     sha_test.Update(&a);
     sha_test.Final(testhash);*/
-    
     //std::cout << "hash test " << testhash << std::endl;   
     //std::cout << "bitvector a " << a1 << " " << a2 << " " << a3 << std::endl;
     //std::cout << "bitvector a " << a << std::endl;
     //std::cout << "actual bits " << int(b2View[6][0]) << " " <<  int(b2View[6][54]) << std::endl;
     //std::cout << "data before " << int(bView(400, 0)) << std::endl;
-    //std::cout << "data after " << int(b3View(400, 0)) << std::endl;
-    
-    
+    //std::cout << "data after " << int(b3View(400, 0)) << std::endl; 
 }
 
 //FSS_Eval for the PSI Sender, #baseOT OKVS instances, returns the SHA evaluation, without using GF2E
-void psiSender_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCrypto::BitVector>> okvs, uint64_t delta, uint64_t hashSize){ 
+/*void psiSender_FssEval(vector<uint64_t> inputs_x, vector<uint64_t> inputs_y, vector<uint64_t> inputs, Matrix<block> fss_keys, uint64_t delta, uint64_t hashSize){ 
     
-    uint64_t nbaseOT = 2; // this will be 440, can be sent a parameter
     uint64_t len_sqr = 2 * delta;
     // setting OKVS parameters
     int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
     double c1 = 1.3; // for okvs
-
+    ObliviousDictionary * dict = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
+    dict->init();
+    std::cout << "OKVS size " << okvs.size() << std::endl;
+    
     uint64_t okvs_key, yx_share, grd_x, grd_y, x, y; 
     x = x_coord;
     y = y_coord;
@@ -510,12 +508,7 @@ void psiSender_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCryp
     //initialize just to be able to dec() -- below 3 calls only set up the hash functions
     //auto t1 = high_resolution_clock::now();
 
-    ObliviousDictionary * dict = new OBD3Tables(hashSize, c1, fieldSize, gamma, v);
-    dict->init();
-    //auto t2 = high_resolution_clock::now();
-    //auto duration = duration_cast<milliseconds>(t2-t1).count();
-    //cout << "okvs initialization time: " << duration << endl;
-    std::cout << "OKVS size " << okvs.size() << std::endl;
+    
     vector<BitVector> okvsbits;
         //BitVector eval;
     auto indices = dict->dec(okvs_key);
@@ -554,7 +547,7 @@ void psiSender_FssEval(uint64_t x_coord, uint64_t y_coord, vector<vector<osuCryp
        //sha_fss.Reset();
     
     std::cout << "Eval for points " << fss_output << std::endl;
-}
+}*/
 
 //FSS_Eval for PSI Sender, #baseOT OKVS instances, returns the SHA evaluation    
 void psi_FssEval(uint64_t x_coord, uint64_t y_coord, array<vector<osuCrypto::block>, 440> okvs, uint64_t delta, uint64_t hashSize){ 

@@ -126,20 +126,25 @@ int main(int argc, char** argv)
     if (cmd.isSet("f"))
     {
         std::cout << "Let's do fuzzy PSI " << std::endl; 
-        std::vector<uint64_t> sendr_inputs;
+        std::vector<uint64_t> sendr_inputs, sendr_x, sendr_y;
         uint64_t grd_key;
-        for (uint64_t i = 0; i < 2; i++){ // let this be the x coordinate
-            for (uint64_t j = 0; j < 2; j++){ // let this be the y coordinate
+        for (uint64_t i = 15; i < 18; i++){ // let this be the x coordinate
+            for (uint64_t j = 15; j < 18; j++){ // let this be the y coordinate
                 grd_key = j;
                 grd_key = grd_key << 32;
                 grd_key = grd_key + i;
                 sendr_inputs.push_back(grd_key);
+                sendr_x.push_back(i);
+                sendr_y.push_back(j);
                 //std::cout << "grd key " << grd_key << std::endl;
                 grd_key = 0;        
             }
         }
         std::cout << "done sampling the sender's inputs " << std::endl;
-        fss_psi(sendr_inputs);
+        for (int i = 0; i < sendr_inputs.size(); i++){
+            std::cout << sendr_x[i] << " " << sendr_y[i] << " " << sendr_inputs[i] << std::endl;
+        }
+        fss_psi(sendr_x, sendr_y, sendr_inputs);
         //fuzzyPSI(11, 2000, 1000000);
         //fuzzyPSI(11, 3, 10);
 
