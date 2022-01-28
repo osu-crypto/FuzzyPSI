@@ -40,7 +40,7 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
     // add FSS_share+eval here
     std::array<vector<block>, 440> recvr_fsskeys0, recvr_fsskeys1;
     std::unordered_map<block, uint64_t> recvr_hash;
-    key_size = psi_FssShareEval(recvr_hash, 10, 2800, recvr_fsskeys0, recvr_fsskeys1);
+    key_size = psi_FssShareEval(recvr_hash, 10, 2900, recvr_fsskeys0, recvr_fsskeys1);
     //std::cout << "plain vals " << recvr_fsskeys0[330][0] << " " << recvr_fsskeys1[330][0] << std::endl; 
     //std::cout << "plain vals " << recvr_fsskeys0[330][1] << " " << recvr_fsskeys1[330][1] << std::endl; 
     //std::cout << "plain vals " << recvr_fsskeys0[330][2] << " " << recvr_fsskeys1[330][2] << std::endl; 
@@ -145,7 +145,7 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
 
     // setting OKVS parameters
     int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
-    double c1 = 1.5; // for okvs
+    double c1 = 1.3; // for okvs
     ObliviousDictionary * dict = new OBD3Tables(key_size, c1, fieldSize, gamma, v);
     dict->init();
     //std::cout << "key size " << key_size << std::endl;

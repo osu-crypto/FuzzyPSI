@@ -29,7 +29,7 @@ void PaxosEncode(std::vector<uint64_t> setKeys, const std::vector<block> setValu
 {
     GF2E dhBitsVal;
     int hashSize=setKeys.size(), gamma = 60, v=20;
-    double c1 = 1.5;
+    double c1 = 1.3;
     //vector<uint64_t> keys;
     //keys.resize(hashSize);
     int fieldSizeBytes = fieldSize % 8 == 0 ? fieldSize/8 : fieldSize/8 + 1;
