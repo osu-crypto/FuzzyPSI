@@ -29,7 +29,7 @@ void PaxosEncode(std::vector<uint64_t> setKeys, const std::vector<block> setValu
 {
     GF2E dhBitsVal;
     int hashSize=setKeys.size(), gamma = 60, v=20;
-    double c1 = 1.3;
+    double c1 = 1.5;
     //vector<uint64_t> keys;
     //keys.resize(hashSize);
     int fieldSizeBytes = fieldSize % 8 == 0 ? fieldSize/8 : fieldSize/8 + 1;
@@ -233,9 +233,12 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
                     sha_fss.Update((u8*)blockView[j].data(), 55);
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
-                    /*if (i == 118 && j == 54) {
+                    /*if (i == 127 && j == 63) {
                         //std::cout << int(blockView(i, 50)) << " " << int(blockView(i, 40)) << " " << int(blockView(j, 20)) << std::endl;
                         std::cout << "i " << i << "j " << j << " key " << grd_key << " hash " << hash_output << std::endl;
+                        BitVector y;
+                        y.append((u8*)blockView[j].data(), 440, 0);
+                        std::cout << y << std::endl;
                     }*/
                     //std::cout << "key " << grd_key << " hash " << hash_output << std::endl;
                     grd_key = 0;
@@ -445,19 +448,6 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
     //array<array<block, 66>, 440> test_transpose;
     for (int i = 0; i < okvsVal0.size(); i++){
         PaxosEncode(okvsKeys, okvsVal0[i], okvsVal1[i], okvs0[i], okvs1[i], 128);
-        //std::cout << "okvs size " << okvs0[i].size() << std::endl;
-      //  for (int j = 0; j < okvs0[i].size(); j++)
-      //      test_transpose[i][j] = okvs0[i][j];
-        
-        /*
-        MatrixView<block> okvs0_View((block*)Okvs0.data(), Okvs0.size(), 1);
-	    Matrix<block> ot0_View(128, (Okvs0.size()/128) + 1);
-        transpose(okvs0_View, ot0_View);
-        MatrixView<block> okvs1_View((block*)Okvs1.data(), Okvs1.size(), 1);
-	    Matrix<block> ot1_View(128, (Okvs1.size()/128) + 1);
-        transpose(okvs1_View, ot1_View);
-        Okvs0.clear();
-        Okvs1.clear();*/
     }
     return okvsKeys.size();
     // NEED STUFF BELOW FOR PSI SENDER EVAL!!! ****

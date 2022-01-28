@@ -13,8 +13,8 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
     IOService ios;
     Channel senderChl = Session(ios, "localhost:1212", SessionMode::Server).addChannel();
     Channel recverChl = Session(ios, "localhost:1212", SessionMode::Client).addChannel();
-    Channel senderChl2 = Session(ios, "localhost:1212", SessionMode::Client).addChannel();
-    Channel recverChl2 = Session(ios, "localhost:1212", SessionMode::Server).addChannel();
+    //Channel senderChl2 = Session(ios, "localhost:1212", SessionMode::Client).addChannel();
+    //Channel recverChl2 = Session(ios, "localhost:1212", SessionMode::Server).addChannel();
 
     uint64_t delta = 10;
     uint64_t len_sqr = 2 * delta;
@@ -40,7 +40,7 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
     // add FSS_share+eval here
     std::array<vector<block>, 440> recvr_fsskeys0, recvr_fsskeys1;
     std::unordered_map<block, uint64_t> recvr_hash;
-    key_size = psi_FssShareEval(recvr_hash, 10, 100, recvr_fsskeys0, recvr_fsskeys1);
+    key_size = psi_FssShareEval(recvr_hash, 10, 2800, recvr_fsskeys0, recvr_fsskeys1);
     //std::cout << "plain vals " << recvr_fsskeys0[330][0] << " " << recvr_fsskeys1[330][0] << std::endl; 
     //std::cout << "plain vals " << recvr_fsskeys0[330][1] << " " << recvr_fsskeys1[330][1] << std::endl; 
     //std::cout << "plain vals " << recvr_fsskeys0[330][2] << " " << recvr_fsskeys1[330][2] << std::endl; 
@@ -71,17 +71,14 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
     std::vector<block> recvHashinputs;
     std::vector<uint64_t> psi_outputs;
     senderChl.recv(recvHashinputs);
-    std::cout << "hi " << std::endl;
-    for (int i = 0; i < recvHashinputs.size(); i++)
-        std::cout << recvHashinputs[i] << std::endl;
 
     for (uint64_t i = 0; i < recvHashinputs.size(); i++){
         if(recvr_hash.find(recvHashinputs[i]) != recvr_hash.end()){
             psi_outputs.push_back(recvr_hash[recvHashinputs[i]]);
         }
-        else {
+        /*else {
             cout << "problematic point is " << recvr_hash[recvHashinputs[i]] << std::endl; 
-        }
+        }*/
     } 
 
     });
@@ -97,7 +94,7 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         // basically receiver gets ciphertexts of form [# base OT] * [enc(k1, m1), enc(k2, m2)] here
         size_t okvs_size = 0;
         recverChl.recv(okvs_size);
-        std::cout << "received okvs size " << okvs_size << std::endl;
+        //std::cout << "received okvs size " << okvs_size << std::endl;
         Matrix<block> sendr_ciphertxt0(440, okvs_size);
         Matrix<block> sendr_ciphertxt1(440, okvs_size);
         recverChl.recv(sendr_ciphertxt0);
@@ -148,10 +145,10 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
 
     // setting OKVS parameters
     int gamma = 60, v=20, fieldSizeBytes = 16, fieldSize = 128; // for okvs
-    double c1 = 1.3; // for okvs
+    double c1 = 1.5; // for okvs
     ObliviousDictionary * dict = new OBD3Tables(key_size, c1, fieldSize, gamma, v);
     dict->init();
-    std::cout << "key size " << key_size << std::endl;
+    //std::cout << "key size " << key_size << std::endl;
 
     // below we compute the "okvs keys" associated with each of the keys from the
     if (sendr_x.size() != sendr_y.size())
@@ -166,21 +163,24 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         okvs_key = grd_y;
         okvs_key = okvs_key << 32;
         okvs_key = okvs_key + grd_x;
-        uint64_t pos_x = int_start + (sendr_x[i] - (grd_x * 2 * delta));
-        uint64_t pos_y = int_start + (sendr_y[i] - (grd_y * 2 * delta));
-        std::cout << "OKVS key " << pos_x << " " << pos_y << " " << okvs_key << std::endl;
+        int pos_x = 64 + int_start + (sendr_x[i] - (grd_x * 2 * delta));
+        int pos_y = int_start + (sendr_y[i] - (grd_y * 2 * delta));
+        //std::cout << "OKVS key " << pos_x << " " << pos_y << " " << okvs_key << std::endl;
         auto indices = dict->dec(okvs_key);
         //std::cout << "INDICES " << indices.size() << " " << indices[0] << " " << indices[1] << " " << indices[2] << std::endl;
         BitVector x1, x2, x3, x, y1, y2, y3, y;
-        x1.append((u8*)sendr_Tfss_keys[128 * indices[0] + 64 + pos_x].data(), 440, 0);
-        x2.append((u8*)sendr_Tfss_keys[128 * indices[1] + 64 + pos_x].data(), 440, 0);
-        x3.append((u8*)sendr_Tfss_keys[128 * indices[2] + 64 + pos_x].data(), 440, 0); 
-        x = x1 ^ x2 ^ x3;
-        //std::cout << x << std::endl;
-        y1.append((u8*)sendr_Tfss_keys[128 * indices[0] + pos_y].data(), 440, 0);
-        y2.append((u8*)sendr_Tfss_keys[128 * indices[1] + pos_y].data(), 440, 0);
-        y3.append((u8*)sendr_Tfss_keys[128 * indices[2] + pos_y].data(), 440, 0); 
-        y = y1 ^ y2 ^ y3;
+        x.append((u8*)sendr_Tfss_keys[(128 * indices[0]) + pos_x].data(), 440, 0);
+        y.append((u8*)sendr_Tfss_keys[(128 * indices[0]) + pos_y].data(), 440, 0);
+        for (int i = 1; i < 3; i++) {
+            x1.append((u8*)sendr_Tfss_keys[(128 * indices[i]) + pos_x].data(), 440, 0);
+            x = x ^ x1;
+            x1.reset();
+            y1.append((u8*)sendr_Tfss_keys[(128 * indices[i]) + pos_y].data(), 440, 0); 
+            y = y ^ y1;
+            //std::cout << x1 << std::endl;
+            y1.reset();
+        }
+        
         //std::cout << x << std::endl;
         //std::cout << y << std::endl;
         block testhash;
@@ -189,41 +189,11 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         sha_test.Update((u8*)&y, 55);
         sha_test.Final(testhash);
         sendr_evals.push_back(testhash);
-        //sha_test.Reset();
-        std::cout << testhash << std::endl;
+        //std::cout << testhash << std::endl;
     }
     recverChl.send(sendr_evals);
 
-    recverThread.join();
-
-    /*for (uint64_t r = 0; r < sender_inputs.size(); r++){
-            // #4 TO DO: call the psi_SenderFSSEval() with 
-            //           fsskeysRecv_transpose 
-            // Note: it should suffice to send only the hash values right? 
-            hashed_inputs.push_back(hash);
-        }*/
-        //sender sending hash of FSS eval of his inputs
-        //recverChl.asyncSend(hashed_inputs); 
-       
-       
-
-    // TO DO: now we recv the hash of the each of the PSI sender's inputs 
-    // vector<block> recvHashinputs(r_input_size), recver_hashes;
-    //senderChl.recv(recvHashinputs);
-    
-   
-    // TO DO: computing the output 
-    /*vector<uint64_t> psi_outputs;
-    for (uint64_t i = 0; i < recvHashinputs.size(); i++){
-        if(recv_hash.find(recvHashinputs[i]) != recv_hash.end()){
-            psi_outputs.push_back(recv_hash[recvHashinputs[i]]);
-        }
-        else {
-            cout << "problematic point is " << recv_hash[recvHashinputs[i]] << std::endl; 
-        }
-
-    } */
-    
+    recverThread.join(); 
    
 }
 

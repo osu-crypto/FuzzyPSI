@@ -128,8 +128,8 @@ int main(int argc, char** argv)
         std::cout << "Let's do fuzzy PSI " << std::endl; 
         std::vector<uint64_t> sendr_inputs, sendr_x, sendr_y;
         uint64_t grd_key;
-        for (uint64_t i = 15; i < 18; i++){ // let this be the x coordinate
-            for (uint64_t j = 15; j < 18; j++){ // let this be the y coordinate
+        for (uint64_t i = 0; i < 200; i++){ // let this be the x coordinate
+            for (uint64_t j = 0; j < 200; j++){ // let this be the y coordinate
                 grd_key = j;
                 grd_key = grd_key << 32;
                 grd_key = grd_key + i;
@@ -141,10 +141,15 @@ int main(int argc, char** argv)
             }
         }
         std::cout << "done sampling the sender's inputs " << std::endl;
-        for (int i = 0; i < sendr_inputs.size(); i++){
+        /*for (int i = 0; i < sendr_inputs.size(); i++){
             std::cout << sendr_x[i] << " " << sendr_y[i] << " " << sendr_inputs[i] << std::endl;
-        }
+        }*/
+        auto t1 = high_resolution_clock::now();
         fss_psi(sendr_x, sendr_y, sendr_inputs);
+        auto t2 = high_resolution_clock::now();
+        auto duration = duration_cast<milliseconds>(t2-t1).count();
+        cout << "PSI time: " << duration << endl;
+        
         //fuzzyPSI(11, 2000, 1000000);
         //fuzzyPSI(11, 3, 10);
 
