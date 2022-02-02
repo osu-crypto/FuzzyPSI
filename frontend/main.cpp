@@ -128,15 +128,14 @@ int main(int argc, char** argv)
         std::cout << "Let's do fuzzy PSI " << std::endl; 
         std::vector<uint64_t> sendr_inputs, sendr_x, sendr_y;
         uint64_t grd_key;
-        for (uint64_t i = 0; i < 200; i++){ // let this be the x coordinate
-            for (uint64_t j = 0; j < 200; j++){ // let this be the y coordinate
+        for (uint64_t i = 29; i < 30; i++){ // let this be the x coordinate
+            for (uint64_t j = 29; j < 30; j++){ // let this be the y coordinate
                 grd_key = j;
                 grd_key = grd_key << 32;
                 grd_key = grd_key + i;
                 sendr_inputs.push_back(grd_key);
                 sendr_x.push_back(i);
                 sendr_y.push_back(j);
-                //std::cout << "grd key " << grd_key << std::endl;
                 grd_key = 0;        
             }
         }
