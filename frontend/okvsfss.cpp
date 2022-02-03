@@ -214,7 +214,7 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
     uint64_t pos_x = point_x - (grd_x * 2 * delta);
     uint64_t pos_y = point_y - (grd_y * 2 * delta);
     uint64_t pt_y = point_y; 
-    bool flag = false;
+    /*bool flag = false;
     if (point_x == 29 && point_y == 29){
         flag = true;
         grd_key = grd_y;
@@ -222,7 +222,7 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
         grd_key = grd_key + grd_x;
         std::cout << "fss sharing eval okvs key : " << grd_key << std::endl;
         grd_key = 0;
-    }
+    }*/
     if(x){
         if(y){
             for (int i = 64 + int_start + pos_x; i < 128; i++){
@@ -329,7 +329,7 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
                     
-                    if (j == 53 && i == 117 && flag == true){
+                    /*if (j == 53 && i == 117 && flag == true){
                        // std::cout << int(blockView(i, 50)) << " " << int(blockView(i, 40)) << " " << int(blockView(j, 20)) << std::endl;
                         std::cout << "x " << point_x << "y " << pt_y << std::endl;
                         std::cout << "i " << i << "j " << j << std::endl;
@@ -341,7 +341,7 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
                         BitVector ry;
                         ry.append((u8*)blockView[j].data(), 440, 0);
                         //std::cout << "ry " << ry << std::endl;
-                    }
+                    }*/
                     //std::cout << "key " << grd_key << " hash " << hash_output << std::endl;
                     grd_key = 0;
                     sha_fss.Reset();
@@ -359,16 +359,12 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
 uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64_t delta, int nSquares, array<vector<block>, 440> &okvs0, array<vector<block>, 440> &okvs1){
     //Full domain evaluation of the FSS
 
-    //std::unordered_map<block, uint64_t> recv_hash, test_hash;
-
     //initialize variables
     uint64_t len_sqr = 2 * delta; 
     array<vector<block>, 440> okvsVal0, okvsVal1;  /// NOT SURE ABOUT THIS!!!!
-    vector<block> shares; // size 2
     vector<uint64_t> okvsKeys; // vals0 -> fsskeys0, vals1 -> fsskeys1
     //below are variables to process a single square 
     uint64_t bl_x, bl_y, br_x, br_y, tl_x, tl_y, tr_x, tr_y, grd_bl_x, grd_bl_y, grd_br_x, grd_br_y, grd_tl_x, grd_tl_y, grd_tr_x, grd_tr_y, grd_key;
-    vector<block> rand0(440), rand1(440); // TODO: vec<block> of size 440
     vector<block> Okvs0, Okvs1;
     PRNG mprng(toBlock(31));
 
@@ -385,8 +381,6 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
         vector<array<block, 440>> weakfss_bl = share_weakFSS(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
         fulldomainEval(recv_hash, delta, weakfss_bl[0], grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
         for (int j = 0; j < weakfss_bl[0].size(); j++){
-            //shares = share_trivialFSS(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true, rand0[j], rand1[j]); // do this 440 times, once for each pair of <rand0, rand1>
-            // CHECK BELOW 
             okvsVal0[j].push_back(weakfss_bl[0][j]); // this is where the transpose happens
             okvsVal1[j].push_back(weakfss_bl[1][j]); // do this step 440 times!
         }
@@ -395,7 +389,6 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
         grd_key = grd_key << 32;
         grd_key = grd_key + grd_bl_x;
         okvsKeys.push_back(grd_key);
-        //std::cout << grd_bl_x << "  " << grd_bl_y << std::endl;
         grd_key = 0;
         
         //TL
@@ -404,8 +397,7 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
         return_grid(tl_x, tl_y, grd_tl_x, grd_tl_y, len_sqr);
         vector<array<block, 440>> weakfss_tl = share_weakFSS(delta, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false);
         fulldomainEval(recv_hash, delta, weakfss_tl[0], grd_tl_x, grd_tl_y, tl_x, true, tl_y, false);        
-        for (int j = 0; j < rand0.size(); j++){
-            //shares = share_trivialFSS(delta, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false, rand0[j], rand1[j]);
+        for (int j = 0; j < weakfss_tl[0].size(); j++){
             okvsVal0[j].push_back(weakfss_tl[0][j]);
             okvsVal1[j].push_back(weakfss_tl[1][j]);
         }
@@ -422,8 +414,7 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
         return_grid(br_x, br_y, grd_br_x, grd_br_y, len_sqr);
         vector<array<block, 440>> weakfss_br = share_weakFSS(delta, grd_br_x, grd_br_y, br_x, false, br_y, true);
         fulldomainEval(recv_hash, delta, weakfss_br[0], grd_br_x, grd_br_y, br_x, false, br_y, true);
-        for (int j = 0; j < rand0.size(); j++){
-            //shares = share_trivialFSS(delta, grd_br_x, grd_br_y, br_x, false, br_y, true, rand0[j], rand1[j]);
+        for (int j = 0; j < weakfss_br[0].size(); j++){
             okvsVal0[j].push_back(weakfss_br[0][j]);
             okvsVal1[j].push_back(weakfss_br[1][j]);
         }
@@ -440,8 +431,7 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
         return_grid(tr_x, tr_y, grd_tr_x, grd_tr_y, len_sqr);
         vector<array<block, 440>> weakfss_tr = share_weakFSS(delta, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false);
         fulldomainEval(recv_hash, delta, weakfss_tr[0], grd_tr_x, grd_tr_y, tr_x, false, tr_y, false);
-        for (int j = 0; j < rand0.size(); j++){
-            //shares = share_trivialFSS(delta, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false, rand0[j], rand1[j]);
+        for (int j = 0; j < weakfss_tr[0].size(); j++){
             okvsVal0[j].push_back(weakfss_tr[0][j]);
             okvsVal1[j].push_back(weakfss_tr[1][j]);
         }
@@ -449,20 +439,16 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
         grd_key = grd_tr_y;
         grd_key = grd_key << 32;
         grd_key = grd_key + grd_tr_x;
-        if (i == 0)
-            std::cout << "in sharing eval key " << grd_key << std::endl; 
         okvsKeys.push_back(grd_key);
         grd_key = 0;
         
     }
-    // 1. add a transpose here for the okvsVals and the compute the PaXosEncode
 
-    //array<array<block, 66>, 440> test_transpose;
     for (int i = 0; i < okvsVal0.size(); i++){
         PaxosEncode(okvsKeys, okvsVal0[i], okvsVal1[i], okvs0[i], okvs1[i], 128);
     }
     // BELOW CHECKS DECODE WORKS, for 100 squares and c = 2.4
-    std::cout << "key " << okvsKeys[3] << std::endl;
+    /*std::cout << "key " << okvsKeys[3] << std::endl;
     std::cout << "<key, value pair> " << okvsKeys[3] << " " << okvsVal0[10][3] << " " << okvsVal1[10][3] << std::endl;
     BitVector a;
     a.assign(okvsVal1[10][3]);
@@ -489,29 +475,7 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
     std::cout << bits << std::endl;
     if (bits == a)
         std::cout << "decode works " << std::endl;
-    
-    
-    // NEED STUFF BELOW FOR PSI SENDER EVAL!!! ****
-    /*MatrixView<u8> bView((u8*)test_transpose.data(), 440, test_transpose[0].size()* 16);
-    Matrix<u8> b2View(test_transpose[0].size()*128, 55);
-    Matrix<u8> b3View(440, test_transpose[0].size()*16);
-    transpose(bView, b2View);
-    transpose(b2View, b3View);
-    BitVector a1, a2, a3, a;
-    a1.append((u8*)b2View[11].data(), 440, 0);
-    a2.append((u8*)b2View[6].data(), 440, 0);
-    a3.append((u8*)b2View[7].data(), 440, 0); 
-    a = a1 ^ a2 ^ a3;
-    RandomOracle sha_test(sizeof(block));
-    block testhash; 
-    sha_test.Update(&a);
-    sha_test.Final(testhash);*/
-    //std::cout << "hash test " << testhash << std::endl;   
-    //std::cout << "bitvector a " << a1 << " " << a2 << " " << a3 << std::endl;
-    //std::cout << "bitvector a " << a << std::endl;
-    //std::cout << "actual bits " << int(b2View[6][0]) << " " <<  int(b2View[6][54]) << std::endl;
-    //std::cout << "data before " << int(bView(400, 0)) << std::endl;
-    //std::cout << "data after " << int(b3View(400, 0)) << std::endl; 
+    */
     return okvsKeys.size();
 }
 

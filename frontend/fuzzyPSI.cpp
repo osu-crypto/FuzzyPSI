@@ -74,10 +74,12 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         if(recvr_hash.find(recvHashinputs[i]) != recvr_hash.end()){
             psi_outputs.push_back(recvr_hash[recvHashinputs[i]]);
         }
-        else {
+        /*else {
             cout << "problematic point is " << recvr_hash[recvHashinputs[i]] << std::endl; 
-        }
-    }   
+        }*/
+    }  
+
+    std::cout << "PSI outputs size " << psi_outputs.size() << std::endl; 
 
     });
 
@@ -109,17 +111,15 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
             aesDeckey.setKey(baseRecv[i]);
             for (int j = 0; j < okvs_size; j++){
                 if (choices[i] == 0){
-                    //std::cout << "choice " << i << " == 0 " << std::endl; 
                     sendr_fsskeys[i][j] = aesDeckey.ecbDecBlock(sendr_ciphertxt0[i][j]);
                 }
                 else{
-                    //std::cout << "choice " << i << " == 1 " << std::endl; 
                     sendr_fsskeys[i][j] = aesDeckey.ecbDecBlock(sendr_ciphertxt1[i][j]);
                 }             
             }
         }
 
-        array<block, 440> cmon;
+        /*array<block, 440> cmon;
         BitVector bits1, bits2, bits3;
         for (int k = 0; k < 440; k++){
             bits1.assign(sendr_fsskeys[k][73]); // make the index here 73
@@ -153,10 +153,10 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         std::cout << "sender hash " << hash_gg << std::endl;
         BitVector sx;
         sx.append((u8*)blockView[117].data(), 440, 0);
-        std::cout << "sx " << sx << std::endl;
+        //std::cout << "sx " << sx << std::endl;
         BitVector sy;
         sy.append((u8*)blockView[53].data(), 440, 0);
-        std::cout << "sy " << sy << std::endl;
+        //std::cout << "sy " << sy << std::endl;*/
 
 
     MatrixView<u8> sendr_fss_keys((u8*)sendr_fsskeys.data(), 440, okvs_size * 16);
@@ -184,12 +184,12 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         okvs_key = grd_y;
         okvs_key = okvs_key << 32;
         okvs_key = okvs_key + grd_x;
-        std::cout << "sendr_x, y " << sendr_x[i] << " " << sendr_y[i] << std::endl;
+        //std::cout << "sendr_x, y " << sendr_x[i] << " " << sendr_y[i] << std::endl;
         int pos_x = 64 + int_start + (sendr_x[i] - (grd_x * 2 * delta));
         int pos_y = int_start + (sendr_y[i] - (grd_y * 2 * delta));
-        std::cout << "OKVS key " << pos_x << " " << pos_y << " " << okvs_key << std::endl;
+        //std::cout << "OKVS key " << pos_x << " " << pos_y << " " << okvs_key << std::endl;
         auto indices = dict->dec(okvs_key);
-        std::cout << "INDICES " << okvs_key << " " << indices.size() << " " << indices[0] << " " << indices[1] << " " << indices[2] << std::endl;
+        //std::cout << "INDICES " << okvs_key << " " << indices.size() << " " << indices[0] << " " << indices[1] << " " << indices[2] << std::endl;
         BitVector x_idx1, x_idx2, x_idx3, y_idx1, y_idx2, y_idx3;
         x_idx1.append((u8*)sendr_Tfss_keys[(128 * indices[0]) + pos_x].data(), 440, 0); // make the index here 73
         BitVector bits_x = x_idx1;
@@ -197,10 +197,10 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         bits_x = bits_x ^ x_idx2;
         x_idx3.append((u8*)sendr_Tfss_keys[(128 * indices[2]) + pos_x].data(), 440, 0);
         bits_x = bits_x ^ x_idx3;
-        std::cout << "efficent eval " << std::endl;
-        std::cout << bits_x << std::endl;
-        if (bits_x == sx)
-            std::cout << "x values match " << std::endl;
+        //std::cout << "efficent eval " << std::endl;
+        //std::cout << bits_x << std::endl;
+        //if (bits_x == sx)
+        //    std::cout << "x values match " << std::endl;
 
         y_idx1.append((u8*)sendr_Tfss_keys[(128 * indices[0]) + pos_y].data(), 440, 0); // make the index here 73
         BitVector bits_y = y_idx1;
@@ -208,22 +208,9 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         bits_y = bits_y ^ y_idx2;
         y_idx3.append((u8*)sendr_Tfss_keys[(128 * indices[2]) + pos_y].data(), 440, 0);
         bits_y = bits_y ^ y_idx3;
-        std::cout << bits_y << std::endl;
-        if (bits_y == sy)
-            std::cout << "y values match " << std::endl;
-        
-        /*BitVector x1, x2, x3, x, y1, y2, y3, y;
-        x.append((u8*)sendr_Tfss_keys[(128 * indices[0]) + pos_x].data(), 440, 0);
-        y.append((u8*)sendr_Tfss_keys[(128 * indices[0]) + pos_y].data(), 440, 0);
-
-        for (int i = 1; i < 3; i++) {
-            x1.append((u8*)sendr_Tfss_keys[(128 * indices[i]) + pos_x].data(), 440, 0);
-            x = x ^ x1;
-            x1.reset();
-            y1.append((u8*)sendr_Tfss_keys[(128 * indices[i]) + pos_y].data(), 440, 0); 
-            y = y ^ y1;
-            y1.reset();
-        } */      
+        //std::cout << bits_y << std::endl;
+        //if (bits_y == sy)
+        //    std::cout << "y values match " << std::endl;
         
         block testhash;
         sha_test.Reset();
@@ -231,7 +218,7 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         sha_test.Update((u8*)bits_y.data(), 55);
         sha_test.Final(testhash);
         sendr_evals.push_back(testhash);
-        std::cout << testhash << std::endl;
+        //std::cout << testhash << std::endl;
     }
     recverChl.send(sendr_evals);
 
