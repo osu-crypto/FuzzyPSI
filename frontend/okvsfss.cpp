@@ -317,6 +317,7 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
         else {
             for (int i = 64 + int_start + pos_x; i >= 64 + int_start; i--){
                 for (int j = int_start + pos_y; j >= int_start; j--){
+                    //std::cout << "x " << point_x << "y " << pt_y << std::endl;
                     grd_key = pt_y;
                     grd_key = grd_key << 32;
                     grd_key = grd_key + point_x; 
@@ -328,17 +329,18 @@ uint64_t point_x, bool x, uint64_t point_y, bool y){
                     sha_fss.Final(hash_output);
                     recv_hash.insert({hash_output, grd_key});
                     
-                    if (j == 44 && i == 108 && flag == true){
+                    if (j == 53 && i == 117 && flag == true){
                        // std::cout << int(blockView(i, 50)) << " " << int(blockView(i, 40)) << " " << int(blockView(j, 20)) << std::endl;
+                        std::cout << "x " << point_x << "y " << pt_y << std::endl;
                         std::cout << "i " << i << "j " << j << std::endl;
                         //std::cout << "FSS shareEv : key " << grd_key << std::endl;
                         std::cout << "hash " << hash_output << std::endl;
                         BitVector rx;
                         rx.append((u8*)blockView[i].data(), 440, 0);
-                        std::cout << "rx " << rx << std::endl;
+                        //std::cout << "rx " << rx << std::endl;
                         BitVector ry;
                         ry.append((u8*)blockView[j].data(), 440, 0);
-                        std::cout << "ry " << ry << std::endl;
+                        //std::cout << "ry " << ry << std::endl;
                     }
                     //std::cout << "key " << grd_key << " hash " << hash_output << std::endl;
                     grd_key = 0;

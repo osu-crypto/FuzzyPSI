@@ -122,7 +122,7 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         array<block, 440> cmon;
         BitVector bits1, bits2, bits3;
         for (int k = 0; k < 440; k++){
-            bits1.assign(sendr_fsskeys[k][73]);
+            bits1.assign(sendr_fsskeys[k][73]); // make the index here 73
             //std::cout << bits1 << std::endl;
             BitVector bits = bits1;
             //std::cout << bits << std::endl;
@@ -133,8 +133,10 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
             bits3.assign(sendr_fsskeys[k][430]);
             //std::cout << bits3 << std::endl;
             bits = bits ^ bits3;
-            if (k == 10)
+            if (k == 10){
+                std::cout << "matrix block data " << std::endl;
                 std::cout << bits << std::endl;
+            }
             u8 * u8_key0 = bits.data();
             block blk_bits(u8_key0[15],u8_key0[14],u8_key0[13],u8_key0[12],u8_key0[11],u8_key0[10],u8_key0[9],u8_key0[8],u8_key0[7],u8_key0[6],u8_key0[5],u8_key0[4],u8_key0[3],u8_key0[2],u8_key0[1],u8_key0[0]);
             cmon[k] = blk_bits;
@@ -145,19 +147,23 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         transpose(bitView, blockView);
         block hash_gg;
         RandomOracle sha_gg(sizeof(block));
-        sha_gg.Update((u8*)blockView[108].data(), 55);
-        sha_gg.Update((u8*)blockView[44].data(), 55);
+        sha_gg.Update((u8*)blockView[117].data(), 55);
+        sha_gg.Update((u8*)blockView[53].data(), 55);
         sha_gg.Final(hash_gg);
         std::cout << "sender hash " << hash_gg << std::endl;
         BitVector sx;
-        sx.append((u8*)blockView[108].data(), 440, 0);
+        sx.append((u8*)blockView[117].data(), 440, 0);
         std::cout << "sx " << sx << std::endl;
         BitVector sy;
-        sy.append((u8*)blockView[44].data(), 440, 0);
+        sy.append((u8*)blockView[53].data(), 440, 0);
         std::cout << "sy " << sy << std::endl;
 
 
     MatrixView<u8> sendr_fss_keys((u8*)sendr_fsskeys.data(), 440, okvs_size * 16);
+    /*BitVector x;
+    x.append(&sendr_fss_keys(10, 430 * 16), 128, 0);
+    std::cout << "matrix block -> u8 checking " << std::endl;
+    std::cout << x << std::endl;*/
     Matrix<u8> sendr_Tfss_keys(okvs_size * 128, 55);
     transpose(sendr_fss_keys, sendr_Tfss_keys);
 
@@ -178,15 +184,35 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
         okvs_key = grd_y;
         okvs_key = okvs_key << 32;
         okvs_key = okvs_key + grd_x;
-        //std::cout << "sendr_x, y " << sendr_x[i] << " " << sendr_y[i] << std::endl;
+        std::cout << "sendr_x, y " << sendr_x[i] << " " << sendr_y[i] << std::endl;
         int pos_x = 64 + int_start + (sendr_x[i] - (grd_x * 2 * delta));
         int pos_y = int_start + (sendr_y[i] - (grd_y * 2 * delta));
         std::cout << "OKVS key " << pos_x << " " << pos_y << " " << okvs_key << std::endl;
         auto indices = dict->dec(okvs_key);
-        //for (int i = 0; i < indices.size(); i++)
-        //    std::cout << "index " << indices[i] << std::endl;
         std::cout << "INDICES " << okvs_key << " " << indices.size() << " " << indices[0] << " " << indices[1] << " " << indices[2] << std::endl;
-        BitVector x1, x2, x3, x, y1, y2, y3, y;
+        BitVector x_idx1, x_idx2, x_idx3, y_idx1, y_idx2, y_idx3;
+        x_idx1.append((u8*)sendr_Tfss_keys[(128 * indices[0]) + pos_x].data(), 440, 0); // make the index here 73
+        BitVector bits_x = x_idx1;
+        x_idx2.append((u8*)sendr_Tfss_keys[(128 * indices[1]) + pos_x].data(), 440, 0);
+        bits_x = bits_x ^ x_idx2;
+        x_idx3.append((u8*)sendr_Tfss_keys[(128 * indices[2]) + pos_x].data(), 440, 0);
+        bits_x = bits_x ^ x_idx3;
+        std::cout << "efficent eval " << std::endl;
+        std::cout << bits_x << std::endl;
+        if (bits_x == sx)
+            std::cout << "x values match " << std::endl;
+
+        y_idx1.append((u8*)sendr_Tfss_keys[(128 * indices[0]) + pos_y].data(), 440, 0); // make the index here 73
+        BitVector bits_y = y_idx1;
+        y_idx2.append((u8*)sendr_Tfss_keys[(128 * indices[1]) + pos_y].data(), 440, 0);
+        bits_y = bits_y ^ y_idx2;
+        y_idx3.append((u8*)sendr_Tfss_keys[(128 * indices[2]) + pos_y].data(), 440, 0);
+        bits_y = bits_y ^ y_idx3;
+        std::cout << bits_y << std::endl;
+        if (bits_y == sy)
+            std::cout << "y values match " << std::endl;
+        
+        /*BitVector x1, x2, x3, x, y1, y2, y3, y;
         x.append((u8*)sendr_Tfss_keys[(128 * indices[0]) + pos_x].data(), 440, 0);
         y.append((u8*)sendr_Tfss_keys[(128 * indices[0]) + pos_y].data(), 440, 0);
 
@@ -197,14 +223,12 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
             y1.append((u8*)sendr_Tfss_keys[(128 * indices[i]) + pos_y].data(), 440, 0); 
             y = y ^ y1;
             y1.reset();
-        }
-        //std::cout << x << std::endl;
-        //std::cout << y << std::endl;        
+        } */      
         
         block testhash;
         sha_test.Reset();
-        sha_test.Update((u8*)&x, 55);
-        sha_test.Update((u8*)&y, 55);
+        sha_test.Update((u8*)bits_x.data(), 55);
+        sha_test.Update((u8*)bits_y.data(), 55);
         sha_test.Final(testhash);
         sendr_evals.push_back(testhash);
         std::cout << testhash << std::endl;
