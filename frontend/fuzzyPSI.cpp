@@ -5,7 +5,7 @@ using namespace osuCrypto;
 
 // PSI protocol skeleton 
 
-void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t> sendr_inputs)
+void fss_psi(int numSquares, vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t> sendr_inputs)
 {
 
     // Setup networking. Setting up channels for PSI, sender and recver according to OT not PSI 
@@ -13,7 +13,7 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
     Channel senderChl = Session(ios, "localhost:1212", SessionMode::Server).addChannel();
     Channel recverChl = Session(ios, "localhost:1212", SessionMode::Client).addChannel();
 
-    uint64_t delta = 10;
+    uint64_t delta = 30;
     uint64_t len_sqr = 2 * delta;
     uint64_t baseCount = 440; // baseCount = hamming distance
     uint64_t key_size; // stores the number of values that are encoded into the okvs
@@ -37,7 +37,7 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
     // add FSS_share+eval here
     std::array<vector<block>, 440> recvr_fsskeys0, recvr_fsskeys1;
     std::unordered_map<block, uint64_t> recvr_hash;
-    key_size = psi_FssShareEval(recvr_hash, 10, 100, recvr_fsskeys0, recvr_fsskeys1);
+    key_size = psi_FssShareEval(recvr_hash, delta, numSquares, recvr_fsskeys0, recvr_fsskeys1);
     //std::cout << "plain vals " << recvr_fsskeys0[330][0] << " " << recvr_fsskeys1[330][0] << std::endl; 
     //std::cout << "plain vals " << recvr_fsskeys0[330][1] << " " << recvr_fsskeys1[330][1] << std::endl; 
     //std::cout << "plain vals " << recvr_fsskeys0[330][2] << " " << recvr_fsskeys1[330][2] << std::endl; 
@@ -66,20 +66,22 @@ void fss_psi(vector<uint64_t> sendr_x, vector<uint64_t> sendr_y, vector<uint64_t
     senderChl.asyncSendCopy(std::move(recvr_ciphertxt1));
     
     std::vector<block> recvHashinputs;
-    std::vector<uint64_t> psi_outputs;
+    std::vector<uint64_t> psi_outputs, psi_outside;
 
     senderChl.recv(recvHashinputs);
-    
+    std::cout << recvHashinputs.size() << std::endl;
+    std::cout << recvr_hash.size() << std::endl;
     for (uint64_t i = 0; i < recvHashinputs.size(); i++){
         if(recvr_hash.find(recvHashinputs[i]) != recvr_hash.end()){
             psi_outputs.push_back(recvr_hash[recvHashinputs[i]]);
         }
-        /*else {
-            cout << "problematic point is " << recvr_hash[recvHashinputs[i]] << std::endl; 
-        }*/
+        else {
+            psi_outside.push_back(recvr_hash[recvHashinputs[i]]);
+        }
     }  
 
     std::cout << "PSI outputs size " << psi_outputs.size() << std::endl; 
+    std::cout << "PSI outside size " << psi_outside.size() << std::endl;
 
     });
 

@@ -127,10 +127,10 @@ vector<block> share_trivialFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y,
 }
 
 
-vector<array<block, 440>> share_weakFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uint64_t point_x, bool x, uint64_t point_y, bool y){
+vector<array<block, 440>> share_weakFSS(uint64_t delta, uint64_t grid_x, uint64_t grid_y, uint64_t point_x, bool x, uint64_t point_y, bool y, uint64_t r){
 
     //  just sample random bitvector and then send it back na, what is this circus?
-    PRNG sprng(toBlock(31));
+    PRNG sprng(toBlock(r));
     vector<BitVector> bRand0;
     vector<BitVector> bRand1;
     BitVector FSS_keyzero, FSS_keyone;
@@ -372,13 +372,13 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
     // input: square1 (delta, delta), square2 (delta + 4*delta, delta) ..... square_n(delta + 4(n -1)delta, delta) ...
     bl_x = delta;
     bl_y = delta; 
-
+    uint64_t share_rand = 44;
     for (int i = 0; i < nSquares; i++){
         //BL 
         bl_x = delta + (i*2*len_sqr);
         bl_y = delta; // make bl_y = delta + (i*2*len_sqr)
         return_grid(bl_x, bl_y, grd_bl_x, grd_bl_y, len_sqr);
-        vector<array<block, 440>> weakfss_bl = share_weakFSS(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
+        vector<array<block, 440>> weakfss_bl = share_weakFSS(delta, grd_bl_x, grd_bl_y, bl_x, true, bl_y, true, share_rand);
         fulldomainEval(recv_hash, delta, weakfss_bl[0], grd_bl_x, grd_bl_y, bl_x, true, bl_y, true);
         for (int j = 0; j < weakfss_bl[0].size(); j++){
             okvsVal0[j].push_back(weakfss_bl[0][j]); // this is where the transpose happens
@@ -390,13 +390,14 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
         grd_key = grd_key + grd_bl_x;
         okvsKeys.push_back(grd_key);
         grd_key = 0;
-        
+        share_rand = share_rand + 1;
         //TL
         tl_x = bl_x;
         tl_y = bl_y + len_sqr - 1;
         return_grid(tl_x, tl_y, grd_tl_x, grd_tl_y, len_sqr);
-        vector<array<block, 440>> weakfss_tl = share_weakFSS(delta, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false);
+        vector<array<block, 440>> weakfss_tl = share_weakFSS(delta, grd_tl_x, grd_tl_y, tl_x, true, tl_y, false, share_rand);
         fulldomainEval(recv_hash, delta, weakfss_tl[0], grd_tl_x, grd_tl_y, tl_x, true, tl_y, false);        
+        //std::cout << "recv hash size 2 " << recv_hash.size() << std::endl;
         for (int j = 0; j < weakfss_tl[0].size(); j++){
             okvsVal0[j].push_back(weakfss_tl[0][j]);
             okvsVal1[j].push_back(weakfss_tl[1][j]);
@@ -407,13 +408,15 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
         grd_key = grd_key + grd_tl_x;
         okvsKeys.push_back(grd_key);
         grd_key = 0;
+        share_rand;
         
         //BR
         br_x = bl_x + len_sqr - 1;
         br_y = bl_y;
         return_grid(br_x, br_y, grd_br_x, grd_br_y, len_sqr);
-        vector<array<block, 440>> weakfss_br = share_weakFSS(delta, grd_br_x, grd_br_y, br_x, false, br_y, true);
+        vector<array<block, 440>> weakfss_br = share_weakFSS(delta, grd_br_x, grd_br_y, br_x, false, br_y, true, share_rand);
         fulldomainEval(recv_hash, delta, weakfss_br[0], grd_br_x, grd_br_y, br_x, false, br_y, true);
+        //std::cout << "recv hash size 3 " << recv_hash.size() << std::endl;
         for (int j = 0; j < weakfss_br[0].size(); j++){
             okvsVal0[j].push_back(weakfss_br[0][j]);
             okvsVal1[j].push_back(weakfss_br[1][j]);
@@ -424,13 +427,15 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
         grd_key = grd_key + grd_br_x;
         okvsKeys.push_back(grd_key);
         grd_key = 0;
+        share_rand = share_rand + 1;
 
         //TR
         tr_x = bl_x + len_sqr - 1;
         tr_y = bl_y + len_sqr - 1;
         return_grid(tr_x, tr_y, grd_tr_x, grd_tr_y, len_sqr);
-        vector<array<block, 440>> weakfss_tr = share_weakFSS(delta, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false);
+        vector<array<block, 440>> weakfss_tr = share_weakFSS(delta, grd_tr_x, grd_tr_y, tr_x, false, tr_y, false, share_rand);
         fulldomainEval(recv_hash, delta, weakfss_tr[0], grd_tr_x, grd_tr_y, tr_x, false, tr_y, false);
+        //std::cout << "recv hash size 4 " << recv_hash.size() << std::endl;
         for (int j = 0; j < weakfss_tr[0].size(); j++){
             okvsVal0[j].push_back(weakfss_tr[0][j]);
             okvsVal1[j].push_back(weakfss_tr[1][j]);
@@ -441,7 +446,7 @@ uint64_t psi_FssShareEval(std::unordered_map<block, uint64_t> &recv_hash, uint64
         grd_key = grd_key + grd_tr_x;
         okvsKeys.push_back(grd_key);
         grd_key = 0;
-        
+        share_rand = share_rand + 1;
     }
 
     for (int i = 0; i < okvsVal0.size(); i++){

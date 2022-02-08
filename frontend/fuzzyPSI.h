@@ -32,7 +32,7 @@
 
 using namespace osuCrypto; 
 
-void fss_psi(std::vector<uint64_t> inputs_x, std::vector<uint64_t> inputs_y, std::vector<uint64_t> inputs);
+void fss_psi(int nsquares, std::vector<uint64_t> inputs_x, std::vector<uint64_t> inputs_y, std::vector<uint64_t> inputs);
 void Transpose_View_Test();
 //void fssPSI(uint64_t sender_inputs); 
 void fuzzyPSI(u64 keysize, u64 y_size, u64 x_volume); 
