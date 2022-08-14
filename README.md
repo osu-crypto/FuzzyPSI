@@ -29,27 +29,21 @@ cd libOTe
 python build.py --setup --boost --relic
 python build.py -- -D ENABLE_RELIC=ON -D ENABLE_ALL_OT=ON
 ```
-The main executable with examples is `frontend` and is located in the build directory, eg `out/build/linux/frontend/frontend.exe, out/build/x64-Release/frontend/Release/frontend.exe` depending on the OS. 
+
+In order to link libPaXos, 
+```
+sudo apt install libntl-dev liblinbox-dev libgmp-dev libboost-system-dev libssl-dev libiml-dev 
+
+```
+The main executable with examples is `frontend` and is located in the build directory, eg `out/build/linux/frontend/frontend.exe`. Run the protocol as - 
+```
+cd out/build/linux/frontend
+./frontend libOTE -f
+```
 
 ### Dependancies
 
-Dependancies can be managed via the `build.py` script or or installed via an external tool. If an external tool is used install to system location or set  `-D CMAKE_PREFIX_PATH=path/to/install`.
-
-
-## Install
-
-libOTe can be installed and linked the same way as other cmake projects. By default the dependancies are not installed. To install all dependancies, run the following
-```
-python build.py --setup --boost --relic --sodium --install
-```
-You can also selectively install the dependancies. The install location can be specifying as `--install=path/to/installation`. Otherwise the system default is used.
-
-The main library is similarly installed as
-```
-python build.py --install 
-```
-
-By default, sudo is not used. If installation requires sudo access, then add `--sudo` to the `build.py` script arguments. See `python build.py --help` for full details.
+Dependancies can be managed via the `build.py` script or or installed via an external tool. Look at [LibOTe](https://github.com/osu-crypto/libOTe) for details. 
 
 
 
