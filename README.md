@@ -20,14 +20,8 @@ SHA256. For base OTs and general framework we use the [libOTe library](https://g
 
 ## Build
  
-The library is *cross platform* and has been tested on Windows, Mac and Linux. 
-There is one mandatory dependency on [Boost 1.75](http://www.boost.org/) (networking),
-and three **optional dependencies** on [libsodium](https://doc.libsodium.org/),
-[Relic](https://github.com/relic-toolkit/relic), or
-[SimplestOT](https://github.com/osu-crypto/libOTe/tree/master/SimplestOT) (Unix only)
-for Base OTs.
-CMake 3.15+ is required and the build script assumes python 3.
- 
+We implement our protocol within the [LibOTe](https://github.com/osu-crypto/libOTe) library. Please follow the libOTe library to first build the repository and install the necessary dependencies. 
+
 The library can be built as
 ```
 git clone --recursive https://github.com/osu-crypto/libOTe.git
