@@ -1,23 +1,11 @@
 
 
-A fast and portable C++17 library for Oblivious Transfer extension (OTe). The 
-primary design goal of this library to obtain *high performance* while being 
-*easy to use*.  This library currently implements:
+A  C++17 implementation of Fuzzy PSI protocol written using the Oblivious Transfer extension (OTe) library. 
  
  
 ## Introduction
  
-This library provides several different classes of OT protocols. First is the 
-base OT protocol of [NP01, CO15, MR19, MRR21]. These protocol bootstraps all the other
-OT extension protocols.  Within the OT extension protocols, we have 1-out-of-2,
-1-out-of-N and K-out-of-N, both in the semi-honest and malicious settings. See The `frontend` or `libOTe_Tests` folder for examples.
-
-All implementations are highly optimized using fast SSE instructions and vectorization
-to obtain optimal performance both in the single and multi-threaded setting. See 
-the **Performance** section for a comparison between protocols and to other libraries. 
- 
-Networking can be performed using both the sockets provided by the library and
-external socket classes. See the [networking tutorial](https://github.com/ladnir/cryptoTools/blob/57220fc45252d089a7fd90816144e447a2ce02b8/frontend_cryptoTools/Tutorials/Network.cpp#L264) for an example.
+This is an implementation of our new, fast [FuzzyPSI]{https://eprint.iacr.org/2022/1011.pdf} protocol accepted at [CRYPTO'22]{https://crypto.iacr.org/2022/}
 
 
 ## Build
