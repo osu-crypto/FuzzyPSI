@@ -5,7 +5,13 @@ A  C++17 implementation of Fuzzy PSI protocol written using the Oblivious Transf
  
 ## Introduction
  
-This is an implementation of our new, fast [FuzzyPSI]{https://eprint.iacr.org/2022/1011.pdf} protocol accepted at [CRYPTO'22]{https://crypto.iacr.org/2022/}
+This is an implementation of our new, fast [FuzzyPSI](https://eprint.iacr.org/2022/1011.pdf) protocol accepted at [CRYPTO'22](https://crypto.iacr.org/2022/). 
+As a representative example we consider the case where Alice has a structured set A with 10
+million total points, and Bob has an unstructured set B of 1.2 million points. We hold the total
+cardinality of Alice’s set constant and consider two different ways that her points could be arranged
+into balls:
+• 6250 balls of radius δ = 20, in 2 dimensions
+• 2778 balls of radius δ = 30, in 2 dimensions
 
 
 ## Build
