@@ -1,6 +1,6 @@
 
 
-A  C++17 implementation of Fuzzy PSI protocol written using the Oblivious Transfer extension [(OTe) library](https://github.com/osu-crypto/libOTe). 
+A  C++17 implementation of Fuzzy PSI protocol written using the Oblivious Transfer extension [LibOTe](https://github.com/osu-crypto/libOTe) library.
  
  
 ## Introduction
@@ -11,11 +11,11 @@ million total points, and Bob has an unstructured set B of 1.2 million points. W
 cardinality of Alice’s set constant and consider two different ways that her points could be arranged
 into balls:
 • 6250 balls of radius δ = 20, in 2 dimensions
-• 2778 balls of radius δ = 30, in 2 dimensions
+• 2778 balls of radius δ = 30, in 2 dimensions. 
 We assign dimensions d = 2, our choice of bFSS is a (p = 0.75, k = 2)-bFSS instantiated within the structure-aware PSI framework. 
 
 Our protocol involves cryptographic components (1) base oblivious transfers (2) hamming correlation hash function (3) encryption/decryption functionalities and a general communication framework. For the hamming-correlation robust hash function we use
-SHA256. For base OTs and general framework we use the [libOTe library](https://github.com/osu-crypto/libOTe). We implement the bFSS recipe spatial hash ◦ concat ◦ tt, for balls of pairwise distance > 4δ, and use the OKVS implementation from [NTY21] for spatial hashing. 
+SHA256. For base OTs and general framework we use the [libOTe library](https://github.com/osu-crypto/libOTe). We implement the bFSS recipe spatial hash ◦ concat ◦ tt, for balls of pairwise distance > 4δ, and use the OKVS implementation from [libPaXos](https://github.com/asu-crypto/mPSI) for spatial hashing. 
 
 
 ## Build
